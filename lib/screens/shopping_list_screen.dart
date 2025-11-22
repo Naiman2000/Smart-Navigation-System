@@ -37,17 +37,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         return;
       }
 
-      _firebaseService.getUserShoppingLists(userId).listen((lists) {
-        setState(() {
-          _shoppingLists = lists;
-          _isLoading = false;
-        });
-      }, onError: (error) {
-        setState(() {
-          _errorMessage = 'Failed to load shopping lists: $error';
-          _isLoading = false;
-        });
-      });
+      _firebaseService
+          .getUserShoppingLists(userId)
+          .listen(
+            (lists) {
+              setState(() {
+                _shoppingLists = lists;
+                _isLoading = false;
+              });
+            },
+            onError: (error) {
+              setState(() {
+                _errorMessage = 'Failed to load shopping lists: $error';
+                _isLoading = false;
+              });
+            },
+          );
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load shopping lists: $e';
@@ -56,7 +61,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
-  Future<void> _toggleItemComplete(String listId, String itemId, bool isCompleted) async {
+  Future<void> _toggleItemComplete(
+    String listId,
+    String itemId,
+    bool isCompleted,
+  ) async {
     try {
       await _firebaseService.updateItemStatus(
         listId: listId,
@@ -65,9 +74,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update item: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update item: $e')));
       }
     }
   }
@@ -77,7 +86,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete List?'),
-        content: const Text('Are you sure you want to delete this shopping list?'),
+        content: const Text(
+          'Are you sure you want to delete this shopping list?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -103,9 +114,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete list: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to delete list: $e')));
         }
       }
     }
@@ -136,29 +147,33 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _loadShoppingLists,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade300,
                   ),
-                )
-              : _shoppingLists.isEmpty
-                  ? _buildEmptyState()
-                  : _buildShoppingLists(),
+                  const SizedBox(height: 16),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red.shade700),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _loadShoppingLists,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : _shoppingLists.isEmpty
+          ? _buildEmptyState()
+          : _buildShoppingLists(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, '/addList'),
         backgroundColor: Colors.green,
@@ -173,7 +188,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_cart_outlined, size: 100, color: Colors.grey.shade400),
+          Icon(
+            Icons.shopping_cart_outlined,
+            size: 100,
+            color: Colors.grey.shade400,
+          ),
           const SizedBox(height: 24),
           Text(
             'No Shopping Lists',
@@ -186,9 +205,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           const SizedBox(height: 8),
           Text(
             'Create your first shopping list',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade500,
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pushNamed(context, '/addList'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text(
+              'Create New List',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -273,11 +306,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 ],
               ),
             ),
-            
+
             // Progress Bar
             if (totalItems > 0)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 color: Colors.grey.shade50,
                 child: Row(
                   children: [
@@ -288,7 +324,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                           value: progress,
                           backgroundColor: Colors.grey.shade200,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            progress == 1.0 ? Colors.green : Colors.green.shade400,
+                            progress == 1.0
+                                ? Colors.green
+                                : Colors.green.shade400,
                           ),
                           minHeight: 8,
                         ),
@@ -306,7 +344,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   ],
                 ),
               ),
-            
+
             // Items List (show max 3 items)
             if (list.items.isNotEmpty) ...[
               Padding(
@@ -366,9 +404,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               item.productName,
               style: TextStyle(
                 fontSize: 15,
-                decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+                decoration: item.isCompleted
+                    ? TextDecoration.lineThrough
+                    : null,
                 color: item.isCompleted ? Colors.grey : Colors.black87,
-                fontWeight: item.isCompleted ? FontWeight.normal : FontWeight.w500,
+                fontWeight: item.isCompleted
+                    ? FontWeight.normal
+                    : FontWeight.w500,
               ),
             ),
           ),
@@ -376,7 +418,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             item.quantityDisplay,
             style: TextStyle(
               fontSize: 14,
-              color: item.isCompleted ? Colors.grey.shade400 : Colors.grey.shade600,
+              color: item.isCompleted
+                  ? Colors.grey.shade400
+                  : Colors.grey.shade600,
             ),
           ),
         ],

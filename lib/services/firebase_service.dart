@@ -192,12 +192,13 @@ class FirebaseService {
       return _firestore
           .collection('shopping_lists')
           .where('userId', isEqualTo: userId)
-          .where('isActive', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
+            // Filter out inactive lists on client side
             return snapshot.docs
                 .map((doc) => ShoppingListModel.fromJson(doc.data()))
+                .where((list) => list.isActive)
                 .toList();
           });
     } catch (e) {
