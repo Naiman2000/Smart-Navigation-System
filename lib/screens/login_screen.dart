@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/input_field.dart';
 import '../widgets/custom_button.dart';
 import '../services/firebase_service.dart';
+import '../services/credentials_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,8 +16,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _firebaseService = FirebaseService();
+  final _credentialsService = CredentialsService();
 
   bool _isLoading = false;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  /// Load saved credentials if "Remember Me" was enabled
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final rememberMe = await _credentialsService.getSaveCredentialsPref();
+      if (rememberMe) {
+        final credentials = await _credentialsService.loadCredentials();
+        if (credentials != null && mounted) {
+          setState(() {
+            _emailController.text = credentials['email'] ?? '';
+            _passwordController.text = credentials['password'] ?? '';
+            _rememberMe = true;
+          });
+        }
+      }
+    } catch (e) {
+      // Silently fail - not critical if we can't load credentials
+      debugPrint('Failed to load credentials: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -35,14 +64,31 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
       final user = await _firebaseService.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
 
-      if (user != null && mounted) {
-        // Navigate to home screen
-        Navigator.pushReplacementNamed(context, '/home');
+      if (user != null) {
+        // Handle "Remember Me" preference
+        if (_rememberMe) {
+          await _credentialsService.saveCredentials(
+            email: email,
+            password: password,
+          );
+          await _credentialsService.setSaveCredentialsPref(true);
+        } else {
+          // Clear credentials if "Remember Me" is unchecked
+          await _credentialsService.clearCredentials();
+        }
+
+        if (mounted) {
+          // Navigate to home screen
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
         if (mounted) {
           _showError('Login failed. Please try again.');
@@ -250,13 +296,43 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Forgot Password
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _handleForgotPassword,
-                      child: const Text('Forgot Password?'),
-                    ),
+                  // Remember Me Checkbox
+                  Row(
+                    children: [
+                      SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberMe = value ?? false;
+                            });
+                          },
+                          activeColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                        child: const Text(
+                          'Remember me',
+                          style: TextStyle(fontSize: 14, color: Colors.black87),
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _handleForgotPassword,
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 

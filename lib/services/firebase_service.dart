@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../models/product_model.dart';
 import '../models/shopping_list_model.dart';
+import 'credentials_service.dart';
 
 class FirebaseService {
   // Singleton pattern
@@ -113,6 +114,8 @@ class FirebaseService {
   Future<void> signOut() async {
     try {
       await _auth.signOut();
+      // Clear saved credentials on logout
+      await CredentialsService().clearCredentials();
     } catch (e) {
       throw Exception('Failed to sign out: $e');
     }
