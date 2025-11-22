@@ -41,22 +41,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY_HERE',
-    appId: 'YOUR_APP_ID_HERE',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID_HERE',
-    projectId: 'YOUR_PROJECT_ID_HERE',
-    storageBucket: 'YOUR_STORAGE_BUCKET_HERE',
+    apiKey: 'AIzaSyCTitlnNc7mXU5-W4Pb3fVprm-X_T5SyKk',
+    appId: '1:914076766374:android:8dc5a92996caa62e9ee467',
+    messagingSenderId: '914076766374',
+    projectId: 'smart-navigation-system-6cda6',
+    storageBucket: 'smart-navigation-system-6cda6.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY_HERE',
-    appId: 'YOUR_APP_ID_HERE',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID_HERE',
-    projectId: 'YOUR_PROJECT_ID_HERE',
-    storageBucket: 'YOUR_STORAGE_BUCKET_HERE',
+    apiKey: 'AIzaSyAKhQKbdfuRbzFkIPld-6D6jp0sOTVLuBE',
+    appId: '1:914076766374:ios:f5625dd3e2f43c059ee467',
+    messagingSenderId: '914076766374',
+    projectId: 'smart-navigation-system-6cda6',
+    storageBucket: 'smart-navigation-system-6cda6.firebasestorage.app',
     iosBundleId: 'com.example.smartNavigationSystem',
   );
+
 }
-
-
-

@@ -15,7 +15,45 @@ import 'screens/profile_screen.dart';
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Check for placeholder credentials
+  if (DefaultFirebaseOptions.currentPlatform.apiKey == 'YOUR_API_KEY_HERE') {
+    runApp(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red,
+                    size: 64,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Firebase Not Configured',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'The app is using placeholder Firebase credentials.\n\n'
+                    'Please run "flutterfire configure" or update "lib/firebase_options.dart" with your actual project keys.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
+
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
@@ -25,7 +63,7 @@ void main() async {
     print('Firebase initialization error: $e');
     // Continue without Firebase for development
   }
-  
+
   runApp(const SmartNavigationApp());
 }
 

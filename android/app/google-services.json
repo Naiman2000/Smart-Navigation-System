@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "914076766374",
+    "project_id": "smart-navigation-system-6cda6",
+    "storage_bucket": "smart-navigation-system-6cda6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914076766374:android:8dc5a92996caa62e9ee467",
+        "android_client_info": {
+          "package_name": "com.example.smart_navigation_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTitlnNc7mXU5-W4Pb3fVprm-X_T5SyKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

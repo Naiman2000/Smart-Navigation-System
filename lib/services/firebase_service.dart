@@ -32,11 +32,8 @@ class FirebaseService {
   }) async {
     try {
       // Create authentication account
-      final UserCredential credential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final UserCredential credential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       final User? user = credential.user;
       if (user != null) {
@@ -82,10 +79,26 @@ class FirebaseService {
 
       final User? user = credential.user;
       if (user != null) {
-        // Update last login timestamp
-        await _firestore.collection('users').doc(user.uid).update({
-          'lastLoginAt': Timestamp.now(),
-        });
+        final userDocRef = _firestore.collection('users').doc(user.uid);
+        final userDoc = await userDocRef.get();
+
+        if (userDoc.exists) {
+          // Update last login timestamp
+          await userDocRef.update({'lastLoginAt': Timestamp.now()});
+        } else {
+          // Create missing user profile
+          final userModel = UserModel(
+            userId: user.uid,
+            email: email,
+            displayName: user.displayName ?? 'User',
+            phoneNumber: user.phoneNumber,
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+            preferences: UserPreferences.defaultPreferences(),
+          );
+
+          await userDocRef.set(userModel.toJson());
+        }
       }
 
       return user;
@@ -132,9 +145,10 @@ class FirebaseService {
   /// Update user profile
   Future<void> updateUserProfile(UserModel user) async {
     try {
-      await _firestore.collection('users').doc(user.userId).update(
-            user.toJson(),
-          );
+      await _firestore
+          .collection('users')
+          .doc(user.userId)
+          .update(user.toJson());
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
@@ -182,10 +196,10 @@ class FirebaseService {
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
-        return snapshot.docs
-            .map((doc) => ShoppingListModel.fromJson(doc.data()))
-            .toList();
-      });
+            return snapshot.docs
+                .map((doc) => ShoppingListModel.fromJson(doc.data()))
+                .toList();
+          });
     } catch (e) {
       throw Exception('Failed to get shopping lists: $e');
     }
@@ -194,7 +208,10 @@ class FirebaseService {
   /// Get specific shopping list
   Future<ShoppingListModel?> getShoppingList(String listId) async {
     try {
-      final doc = await _firestore.collection('shopping_lists').doc(listId).get();
+      final doc = await _firestore
+          .collection('shopping_lists')
+          .doc(listId)
+          .get();
       if (doc.exists && doc.data() != null) {
         return ShoppingListModel.fromJson(doc.data()!);
       }
@@ -211,7 +228,7 @@ class FirebaseService {
   }) async {
     try {
       final listDoc = _firestore.collection('shopping_lists').doc(listId);
-      
+
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(listDoc);
         if (!snapshot.exists) {
@@ -222,7 +239,7 @@ class FirebaseService {
         final items = (data['items'] as List<dynamic>)
             .map((e) => e as Map<String, dynamic>)
             .toList();
-        
+
         items.add(item.toJson());
 
         transaction.update(listDoc, {
@@ -244,7 +261,7 @@ class FirebaseService {
   }) async {
     try {
       final listDoc = _firestore.collection('shopping_lists').doc(listId);
-      
+
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(listDoc);
         if (!snapshot.exists) {
@@ -263,8 +280,9 @@ class FirebaseService {
         }
 
         // Calculate completed count
-        final completedCount =
-            items.where((item) => item['isCompleted'] == true).length;
+        final completedCount = items
+            .where((item) => item['isCompleted'] == true)
+            .length;
 
         transaction.update(listDoc, {
           'items': items,
@@ -284,7 +302,7 @@ class FirebaseService {
   }) async {
     try {
       final listDoc = _firestore.collection('shopping_lists').doc(listId);
-      
+
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(listDoc);
         if (!snapshot.exists) {
@@ -300,8 +318,9 @@ class FirebaseService {
         items.removeWhere((item) => item['itemId'] == itemId);
 
         // Recalculate counts
-        final completedCount =
-            items.where((item) => item['isCompleted'] == true).length;
+        final completedCount = items
+            .where((item) => item['isCompleted'] == true)
+            .length;
 
         transaction.update(listDoc, {
           'items': items,
@@ -338,7 +357,7 @@ class FirebaseService {
           .collection('products')
           .orderBy('name')
           .get();
-      
+
       return snapshot.docs
           .map((doc) => ProductModel.fromJson(doc.data()))
           .toList();
@@ -355,7 +374,7 @@ class FirebaseService {
           .where('category', isEqualTo: category)
           .orderBy('name')
           .get();
-      
+
       return snapshot.docs
           .map((doc) => ProductModel.fromJson(doc.data()))
           .toList();
@@ -371,12 +390,14 @@ class FirebaseService {
           .collection('products')
           .orderBy('name')
           .get();
-      
+
       // Filter on client side for case-insensitive search
       return snapshot.docs
           .map((doc) => ProductModel.fromJson(doc.data()))
-          .where((product) =>
-              product.name.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (product) =>
+                product.name.toLowerCase().contains(query.toLowerCase()),
+          )
           .toList();
     } catch (e) {
       throw Exception('Failed to search products: $e');
@@ -404,7 +425,7 @@ class FirebaseService {
           .where('location.aisle', isEqualTo: aisle)
           .orderBy('name')
           .get();
-      
+
       return snapshot.docs
           .map((doc) => ProductModel.fromJson(doc.data()))
           .toList();
@@ -425,9 +446,9 @@ class FirebaseService {
       case 'email-already-in-use':
         return 'An account already exists for that email.';
       case 'user-not-found':
-        return 'No user found for that email.';
       case 'wrong-password':
-        return 'Wrong password provided.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
       case 'invalid-email':
         return 'Invalid email address.';
       case 'user-disabled':
@@ -437,9 +458,11 @@ class FirebaseService {
       case 'operation-not-allowed':
         return 'Email/password accounts are not enabled.';
       default:
+        // Check for the specific configuration error message
+        if (e.message?.contains('supplied auth credential') == true) {
+          return 'System configuration error. Please check your settings.';
+        }
         return 'Authentication error: ${e.message}';
     }
   }
 }
-
-
