@@ -11,12 +11,12 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _beaconService = BeaconService();
-  
+
   bool _isScanning = false;
   String _connectionStatus = 'Not Connected';
   int _beaconsDetected = 0;
   List<Map<String, dynamic>> _beacons = [];
-  
+
   // Sample store layout data
   final List<Map<String, dynamic>> _storeLayout = [
     {'section': 'Dairy & Eggs', 'aisle': 'A1', 'icon': Icons.local_drink},
@@ -43,7 +43,9 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final isAvailable = await _beaconService.initializeBluetooth();
       setState(() {
-        _connectionStatus = isAvailable ? 'Ready to Connect' : 'Bluetooth Not Available';
+        _connectionStatus = isAvailable
+            ? 'Ready to Connect'
+            : 'Bluetooth Not Available';
       });
     } catch (e) {
       setState(() {
@@ -61,7 +63,7 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       await _beaconService.startScanning();
-      
+
       // Simulate beacon detection for demo
       setState(() {
         _beaconsDetected = 5; // Simulated
@@ -154,170 +156,48 @@ class _MapScreenState extends State<MapScreen> {
 
           // Map Area
           Expanded(
-            child: Row(
-              children: [
-                // Store Layout
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    color: Colors.white,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          color: Colors.grey.shade100,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.map, color: Colors.green),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Store Layout',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  'You are here',
-                                  style: TextStyle(
-                                    color: Colors.green.shade700,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: GridView.builder(
-                            padding: const EdgeInsets.all(16),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 0.9,
-                            ),
-                            itemCount: _storeLayout.length,
-                            itemBuilder: (context, index) {
-                              final item = _storeLayout[index];
-                              return _buildStoreSectionCard(item);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Check if we are on a mobile screen (width < 600)
+                bool isMobile = constraints.maxWidth < 600;
 
-                // Side Panel
-                Container(
-                  width: 300,
-                  color: Colors.grey.shade50,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (isMobile) {
+                  // Mobile Layout: Column (Map on top, Info on bottom)
+                  return Column(
                     children: [
-                      // Shopping List Info
-                      if (shoppingList != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          color: Colors.blue.shade50,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.shopping_basket, color: Colors.blue),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Active List',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                shoppingList.listName,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${shoppingList.items.length} items',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      // Store Layout (Takes available space)
+                      Expanded(child: _buildStoreLayoutSection()),
 
-                      // Beacon Info
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.bluetooth_searching,
-                                    color: Colors.green),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Nearby Beacons',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            if (_beacons.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Center(
-                                  child: Text(
-                                    'Start scanning to detect beacons',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              )
-                            else
-                              ..._beacons.map((beacon) => _buildBeaconInfo(
-                                    beacon['name'],
-                                    beacon['rssi'],
-                                    beacon['distance'],
-                                  )),
-                          ],
-                        ),
+                      // Divider
+                      const Divider(height: 1, thickness: 1),
+
+                      // Side Panel (Info) - Fixed height or flexible on mobile
+                      SizedBox(
+                        height: 250, // Fixed height for info panel on mobile
+                        width: double.infinity,
+                        child: _buildSidePanel(shoppingList),
                       ),
                     ],
-                  ),
-                ),
-              ],
+                  );
+                } else {
+                  // Desktop/Tablet Layout: Row (Map on left, Info on right)
+                  return Row(
+                    children: [
+                      // Store Layout
+                      Expanded(flex: 2, child: _buildStoreLayoutSection()),
+
+                      // Vertical Divider
+                      const VerticalDivider(width: 1, thickness: 1),
+
+                      // Side Panel
+                      SizedBox(
+                        width: 300,
+                        child: _buildSidePanel(shoppingList),
+                      ),
+                    ],
+                  );
+                }
+              },
             ),
           ),
         ],
@@ -333,9 +213,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget _buildStoreSectionCard(Map<String, dynamic> section) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -348,11 +226,7 @@ class _MapScreenState extends State<MapScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                section['icon'] as IconData,
-                size: 32,
-                color: Colors.green,
-              ),
+              Icon(section['icon'] as IconData, size: 32, color: Colors.green),
               const SizedBox(height: 8),
               Text(
                 section['section'],
@@ -365,10 +239,7 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 4),
               Text(
                 section['aisle'],
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -381,8 +252,8 @@ class _MapScreenState extends State<MapScreen> {
     Color rssiColor = rssi > -50
         ? Colors.green
         : rssi > -60
-            ? Colors.orange
-            : Colors.red;
+        ? Colors.orange
+        : Colors.red;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -420,28 +291,185 @@ class _MapScreenState extends State<MapScreen> {
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(Icons.signal_cellular_alt, size: 14, color: Colors.grey.shade600),
+              Icon(
+                Icons.signal_cellular_alt,
+                size: 14,
+                color: Colors.grey.shade600,
+              ),
               const SizedBox(width: 4),
               Text(
                 '$rssi dBm',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(width: 12),
               Icon(Icons.straighten, size: 14, color: Colors.grey.shade600),
               const SizedBox(width: 4),
               Text(
                 distance,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStoreLayoutSection() {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.grey.shade100,
+            child: Row(
+              children: [
+                const Icon(Icons.map, color: Colors.green),
+                const SizedBox(width: 8),
+                const Text(
+                  'Store Layout',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'You are here',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: _storeLayout.length,
+              itemBuilder: (context, index) {
+                final item = _storeLayout[index];
+                return _buildStoreSectionCard(item);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidePanel(ShoppingListModel? shoppingList) {
+    return Container(
+      color: Colors.grey.shade50,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Shopping List Info
+            if (shoppingList != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue.shade50,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.shopping_basket, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          'Active List',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      shoppingList.listName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${shoppingList.items.length} items',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Beacon Info
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.bluetooth_searching, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text(
+                        'Nearby Beacons',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_beacons.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Start scanning to detect beacons',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  else
+                    ..._beacons.map(
+                      (beacon) => _buildBeaconInfo(
+                        beacon['name'],
+                        beacon['rssi'],
+                        beacon['distance'],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
