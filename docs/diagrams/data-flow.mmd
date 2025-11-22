@@ -1,0 +1,66 @@
+graph LR
+    subgraph "User Actions"
+        A[User Login]
+        B[Add Items]
+        C[View List]
+        D[Navigate Store]
+    end
+    
+    subgraph "UI Layer"
+        E[Login Screen]
+        F[Add List Screen]
+        G[Shopping List Screen]
+        H[Map Screen]
+    end
+    
+    subgraph "Services"
+        I[Firebase Service]
+        J[Beacon Service]
+        K[Navigation Service]
+    end
+    
+    subgraph "Data Storage"
+        L[(Firebase Auth)]
+        M[(Cloud Firestore)]
+        N[Local State]
+    end
+    
+    A --> E
+    E --> I
+    I --> L
+    I --> M
+    L -.User Token.-> I
+    I -.User Data.-> E
+    
+    B --> F
+    F --> I
+    I --> M
+    M -.Shopping Lists.-> I
+    I -.Updated Data.-> G
+    
+    C --> G
+    G --> I
+    I --> M
+    M -.List Items.-> I
+    I -.Item Data.-> G
+    
+    D --> H
+    H --> J
+    J -.Beacon Data.-> K
+    K -.Position.-> H
+    H --> I
+    I --> M
+    M -.Product Locations.-> K
+    K -.Route.-> H
+    
+    style A fill:#FFE0B2
+    style B fill:#FFE0B2
+    style C fill:#FFE0B2
+    style D fill:#FFE0B2
+    style L fill:#C8E6C9
+    style M fill:#C8E6C9
+    style N fill:#C8E6C9
+
+
+
+

@@ -1,0 +1,94 @@
+classDiagram
+    class UserModel {
+        +String userId
+        +String email
+        +String displayName
+        +String phoneNumber
+        +DateTime createdAt
+        +DateTime lastLoginAt
+        +UserPreferences preferences
+        +toJson() Map
+        +fromJson() UserModel
+        +copyWith() UserModel
+    }
+    
+    class UserPreferences {
+        +bool notifications
+        +String language
+        +String theme
+        +toJson() Map
+        +fromJson() UserPreferences
+        +defaultPreferences() UserPreferences
+    }
+    
+    class ProductModel {
+        +String productId
+        +String name
+        +String category
+        +String description
+        +double price
+        +String imageUrl
+        +ProductLocation location
+        +bool inStock
+        +DateTime lastUpdated
+        +toJson() Map
+        +fromJson() ProductModel
+        +copyWith() ProductModel
+    }
+    
+    class ProductLocation {
+        +String aisle
+        +String section
+        +int shelf
+        +String beaconId
+        +Coordinates coordinates
+        +toJson() Map
+        +fromJson() ProductLocation
+    }
+    
+    class Coordinates {
+        +double x
+        +double y
+        +toJson() Map
+        +fromJson() Coordinates
+    }
+    
+    class ShoppingListModel {
+        +String listId
+        +String userId
+        +String listName
+        +DateTime createdAt
+        +DateTime updatedAt
+        +List~ShoppingItem~ items
+        +bool isActive
+        +int totalItems
+        +int completedItems
+        +toJson() Map
+        +fromJson() ShoppingListModel
+        +completionPercentage() double
+        +isCompleted() bool
+        +remainingItems() int
+    }
+    
+    class ShoppingItem {
+        +String itemId
+        +String productId
+        +String productName
+        +int quantity
+        +String unit
+        +bool isCompleted
+        +DateTime addedAt
+        +toJson() Map
+        +fromJson() ShoppingItem
+        +quantityDisplay() String
+    }
+    
+    UserModel --> UserPreferences
+    ProductModel --> ProductLocation
+    ProductLocation --> Coordinates
+    ShoppingListModel --> ShoppingItem
+    ShoppingItem --> ProductModel : references
+
+
+
+

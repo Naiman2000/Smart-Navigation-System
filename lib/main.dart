@@ -1,5 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 // Import your screen files
 import 'screens/login_screen.dart';
@@ -10,7 +12,20 @@ import 'screens/add_list_screen.dart';
 import 'screens/shopping_list_screen.dart';
 import 'screens/profile_screen.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print('Firebase initialization error: $e');
+    // Continue without Firebase for development
+  }
+  
   runApp(const SmartNavigationApp());
 }
 

@@ -1,0 +1,41 @@
+graph TD
+    A[App Start] --> B[Login Screen]
+    B -->|New User| C[Register Screen]
+    B -->|Sign In| D[Home Screen]
+    C -->|Create Account| D
+    
+    D -->|View Shopping Lists| E[Shopping List Screen]
+    D -->|Add New Items| F[Add List Screen]
+    D -->|Store Navigation| G[Map Screen]
+    D -->|View Profile| H[Profile Screen]
+    
+    E -->|Add Item| F
+    E -->|Mark Complete| E
+    E -->|Delete Item| E
+    
+    F -->|Save Items| E
+    F -->|Add to List| F
+    
+    G -->|Scan Beacons| I[Beacon Detection]
+    I -->|Calculate Position| J[User Position]
+    J -->|Generate Route| K[Navigation Route]
+    K -->|Display| G
+    
+    H -->|Edit Profile| L[Edit Settings]
+    H -->|Logout| B
+    
+    L -->|Save Changes| H
+    
+    style A fill:#FF6B6B
+    style B fill:#4ECDC4
+    style C fill:#95E1D3
+    style D fill:#4CAF50
+    style E fill:#2196F3
+    style F fill:#FF9800
+    style G fill:#9C27B0
+    style H fill:#E91E63
+    style I fill:#FFE082
+    style J fill:#FFE082
+    style K fill:#FFE082
+
+

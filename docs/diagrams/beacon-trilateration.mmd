@@ -1,0 +1,35 @@
+graph TD
+    A[User Opens Map Screen] --> B[Initialize Beacon Service]
+    B --> C[Start BLE Scanning]
+    C --> D{Beacons Detected?}
+    D -->|No| E[Continue Scanning]
+    E --> C
+    D -->|Yes| F[Measure RSSI Values]
+    F --> G[Apply Moving Average Filter]
+    G --> H[Calculate Distances]
+    H --> I{3+ Valid Beacons?}
+    I -->|No| E
+    I -->|Yes| J[Trilateration Algorithm]
+    J --> K[Calculate X Y Coordinates]
+    K --> L{Position Valid?}
+    L -->|No| M[Use Weighted Average]
+    L -->|Yes| N[Update User Position]
+    M --> N
+    N --> O[Display on Map]
+    O --> P[Calculate Route to Items]
+    P --> Q[Show Turn-by-Turn Directions]
+    Q --> R{Navigation Complete?}
+    R -->|No| C
+    R -->|Yes| S[End Navigation]
+    
+    style A fill:#E3F2FD
+    style B fill:#BBDEFB
+    style J fill:#FFE082
+    style K fill:#FFE082
+    style N fill:#C8E6C9
+    style O fill:#C8E6C9
+    style S fill:#4CAF50
+
+
+
+

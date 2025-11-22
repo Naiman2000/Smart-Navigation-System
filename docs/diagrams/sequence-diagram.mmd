@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant User
+    participant UI as Screen
+    participant Service
+    participant Firebase
+    
+    Note over User,Firebase: Add Item to Shopping List
+    User->>UI: Enter item details
+    User->>UI: Click Add button
+    UI->>Service: addItemToList(listId, item)
+    Service->>Firebase: Write to Firestore
+    Firebase-->>Service: Success response
+    Service-->>UI: Update complete
+    UI->>UI: Update state with setState()
+    UI-->>User: Show updated list
+    
+    Note over User,Firebase: Beacon Navigation
+    User->>UI: Open Map Screen
+    UI->>Service: startScanning()
+    Service->>Service: Initialize Bluetooth
+    
+    loop Every 1-2 seconds
+        Service->>Service: Scan BLE devices
+        Service->>Service: Filter beacons
+        Service->>Service: Calculate distances (RSSI)
+        Service->>Service: Trilateration
+        Service-->>UI: Position update
+        UI->>UI: Update map display
+    end
+    
+    User->>UI: Select destination
+    UI->>Service: calculateRoute(start, dest)
+    Service->>Service: Nearest neighbor algorithm
+    Service-->>UI: Route waypoints
+    UI-->>User: Display route on map
+
+
+
+

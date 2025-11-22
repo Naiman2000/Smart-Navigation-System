@@ -1,0 +1,64 @@
+graph TB
+    subgraph "Presentation Layer"
+        A[Login Screen]
+        B[Home Screen]
+        C[Shopping List Screen]
+        D[Add List Screen]
+        E[Map Screen]
+        F[Profile Screen]
+        G[Register Screen]
+    end
+    
+    subgraph "Business Logic Layer"
+        H[Firebase Service]
+        I[Beacon Service]
+        J[Navigation Service]
+        K[State Management Provider]
+    end
+    
+    subgraph "Data Layer"
+        L[User Model]
+        M[Product Model]
+        N[Shopping List Model]
+        O[Firebase Firestore]
+        P[Firebase Auth]
+    end
+    
+    A --> H
+    B --> H
+    B --> I
+    C --> H
+    C --> K
+    D --> H
+    E --> I
+    E --> J
+    F --> H
+    G --> H
+    
+    H --> L
+    H --> M
+    H --> N
+    H --> O
+    H --> P
+    
+    I --> J
+    J --> M
+    
+    style A fill:#E3F2FD
+    style B fill:#E3F2FD
+    style C fill:#E3F2FD
+    style D fill:#E3F2FD
+    style E fill:#E3F2FD
+    style F fill:#E3F2FD
+    style G fill:#E3F2FD
+    style H fill:#FFF9C4
+    style I fill:#FFF9C4
+    style J fill:#FFF9C4
+    style K fill:#FFF9C4
+    style L fill:#C8E6C9
+    style M fill:#C8E6C9
+    style N fill:#C8E6C9
+    style O fill:#C8E6C9
+    style P fill:#C8E6C9
+
+
