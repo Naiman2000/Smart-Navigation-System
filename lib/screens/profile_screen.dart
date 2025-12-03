@@ -156,10 +156,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.edit,
               title: 'Edit Profile',
               subtitle: 'Update your personal information',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit profile coming soon')),
-                );
+              onTap: () async {
+                final result = await Navigator.pushNamed(context, '/editProfile');
+                if (result == true) {
+                  // Refresh the profile screen
+                  setState(() {});
+                }
               },
             ),
 

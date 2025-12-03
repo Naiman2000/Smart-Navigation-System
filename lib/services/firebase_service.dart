@@ -145,13 +145,19 @@ class FirebaseService {
     }
   }
 
-  /// Update user profile
+  /// Update user profile (creates if doesn't exist)
   Future<void> updateUserProfile(UserModel user) async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(user.userId)
-          .update(user.toJson());
+      final userDoc = _firestore.collection('users').doc(user.userId);
+      final docSnapshot = await userDoc.get();
+      
+      if (docSnapshot.exists) {
+        // Update existing profile
+        await userDoc.update(user.toJson());
+      } else {
+        // Create new profile if it doesn't exist
+        await userDoc.set(user.toJson());
+      }
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
