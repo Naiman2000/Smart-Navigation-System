@@ -186,9 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Privacy & Security',
               subtitle: 'Control your privacy settings',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Privacy settings coming soon')),
-                );
+                Navigator.pushNamed(context, '/privacySecurity');
               },
             ),
 

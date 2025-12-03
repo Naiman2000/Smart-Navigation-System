@@ -132,6 +132,32 @@ class FirebaseService {
     }
   }
 
+  /// Re-authenticate user (required before sensitive operations like password change)
+  Future<UserCredential> reauthenticateUser({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      // Create credential for re-authentication
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+
+      // Re-authenticate
+      return await user.reauthenticateWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Failed to re-authenticate: $e');
+    }
+  }
+
   /// Get current user profile
   Future<UserModel?> getUserProfile(String userId) async {
     try {
