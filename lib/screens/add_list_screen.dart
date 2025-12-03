@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
 import '../services/firebase_service.dart';
@@ -138,15 +139,19 @@ class _AddListScreenState extends State<AddListScreen> {
 
     try {
       if (_isEditMode && _editingListId != null) {
+        debugPrint('Updating shopping list: $_editingListId');
+        
         // Editing existing list
         // Get current list to preserve item completion status
         final currentList = await _firebaseService.getShoppingList(_editingListId!);
         if (currentList == null) {
           throw Exception('List not found');
         }
+        debugPrint('Current list loaded: ${currentList.items.length} items');
 
         // Update list name if changed
         if (currentList.listName != listName) {
+          debugPrint('Updating list name');
           await _firebaseService.updateShoppingListName(
             listId: _editingListId!,
             listName: listName,
@@ -171,11 +176,13 @@ class _AddListScreenState extends State<AddListScreen> {
           return item;
         }).toList();
 
+        debugPrint('Updating ${updatedItems.length} items');
         // Update all items (handles adds, updates, and deletes)
         await _firebaseService.updateShoppingListItems(
           listId: _editingListId!,
           items: updatedItems,
         );
+        debugPrint('List updated successfully');
 
         if (mounted) {
           setState(() {
@@ -190,24 +197,28 @@ class _AddListScreenState extends State<AddListScreen> {
             ),
           );
           
-          await Future.delayed(const Duration(milliseconds: 300));
-          
+          // Navigate back immediately without delay
           if (mounted) {
             Navigator.pop(context, true); // Return true to indicate success
           }
         }
       } else {
+        debugPrint('Creating new shopping list');
+        
         // Creating new list
         final listId = await _firebaseService.createShoppingList(
           userId: userId,
           listName: listName,
         );
+        debugPrint('List created with ID: $listId');
 
         // Add all items to the list in a single batch operation
+        debugPrint('Adding ${_items.length} items to list');
         await _firebaseService.addItemsToListBatch(
           listId: listId,
           items: _items,
         );
+        debugPrint('Items added successfully');
 
         if (mounted) {
           setState(() {
@@ -222,14 +233,16 @@ class _AddListScreenState extends State<AddListScreen> {
             ),
           );
           
-          await Future.delayed(const Duration(milliseconds: 300));
-          
+          // Navigate back immediately without delay
           if (mounted) {
             Navigator.pop(context, true);
           }
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Error saving shopping list: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to save list: ${e.toString()}';

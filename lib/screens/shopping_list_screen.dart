@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
 import '../services/firebase_service.dart';
@@ -14,6 +15,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   List<ShoppingListModel> _shoppingLists = [];
   bool _isLoading = true;
   String? _errorMessage;
+  StreamSubscription<List<ShoppingListModel>>? _listsSubscription;
 
   @override
   void initState() {
@@ -21,7 +23,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     _loadShoppingLists();
   }
 
+  @override
+  void dispose() {
+    _listsSubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadShoppingLists() async {
+    // Cancel existing subscription if any
+    await _listsSubscription?.cancel();
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -30,34 +41,42 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     try {
       final userId = _firebaseService.currentUser?.uid;
       if (userId == null) {
-        setState(() {
-          _errorMessage = 'User not logged in';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'User not logged in';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
-      _firebaseService
+      _listsSubscription = _firebaseService
           .getUserShoppingLists(userId)
           .listen(
             (lists) {
-              setState(() {
-                _shoppingLists = lists;
-                _isLoading = false;
-              });
+              if (mounted) {
+                setState(() {
+                  _shoppingLists = lists;
+                  _isLoading = false;
+                });
+              }
             },
             onError: (error) {
-              setState(() {
-                _errorMessage = 'Failed to load shopping lists: $error';
-                _isLoading = false;
-              });
+              if (mounted) {
+                setState(() {
+                  _errorMessage = 'Failed to load shopping lists: $error';
+                  _isLoading = false;
+                });
+              }
             },
           );
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load shopping lists: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load shopping lists: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
