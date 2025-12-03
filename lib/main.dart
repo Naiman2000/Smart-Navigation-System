@@ -14,6 +14,7 @@ import 'screens/profile_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/notification_preferences_screen.dart';
 import 'screens/privacy_security_screen.dart';
+import 'screens/help_support_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -94,6 +95,7 @@ class SmartNavigationApp extends StatelessWidget {
         '/notificationPreferences': (context) =>
             const NotificationPreferencesScreen(),
         '/privacySecurity': (context) => const PrivacySecurityScreen(),
+        '/helpSupport': (context) => const HelpSupportScreen(),
       },
     );
   }

@@ -195,9 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Help & Support',
               subtitle: 'Get help and contact support',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Help center coming soon')),
-                );
+                Navigator.pushNamed(context, '/helpSupport');
               },
             ),
 
