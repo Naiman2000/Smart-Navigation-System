@@ -169,10 +169,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.notifications_outlined,
               title: 'Notifications',
               subtitle: 'Manage notification preferences',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications coming soon')),
+              onTap: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/notificationPreferences',
                 );
+                if (result == true) {
+                  // Refresh if preferences were updated
+                  setState(() {});
+                }
               },
             ),
 

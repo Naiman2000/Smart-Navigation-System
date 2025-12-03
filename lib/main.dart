@@ -12,6 +12,7 @@ import 'screens/add_list_screen.dart';
 import 'screens/shopping_list_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/notification_preferences_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -89,6 +90,8 @@ class SmartNavigationApp extends StatelessWidget {
         '/shoppingList': (context) => const ShoppingListScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/editProfile': (context) => const EditProfileScreen(),
+        '/notificationPreferences': (context) =>
+            const NotificationPreferencesScreen(),
       },
     );
   }
