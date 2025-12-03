@@ -21,6 +21,31 @@ class _AddListScreenState extends State<AddListScreen> {
   final List<ShoppingItem> _items = [];
   bool _isSaving = false;
   String? _errorMessage;
+  String? _editingListId; // Track if we're editing an existing list
+  bool _isEditMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load existing list data after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExistingListData();
+    });
+  }
+
+  void _loadExistingListData() {
+    // Check if we're editing an existing list
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is ShoppingListModel) {
+      final existingList = arguments;
+      setState(() {
+        _isEditMode = true;
+        _editingListId = existingList.listId;
+        _listNameController.text = existingList.listName;
+        _items.addAll(existingList.items);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -110,39 +135,86 @@ class _AddListScreenState extends State<AddListScreen> {
     });
 
     try {
-      // Create shopping list in Firebase
-      final listId = await _firebaseService.createShoppingList(
-        userId: userId,
-        listName: listName,
-      );
+      if (_isEditMode && _editingListId != null) {
+        // Editing existing list
+        // Get current list to compare items
+        final currentList = await _firebaseService.getShoppingList(_editingListId!);
+        if (currentList == null) {
+          throw Exception('List not found');
+        }
 
-      // Add all items to the list in a single batch operation
-      await _firebaseService.addItemsToListBatch(
-        listId: listId,
-        items: _items,
-      );
+        // Update list name if changed
+        if (currentList.listName != listName) {
+          await _firebaseService.updateShoppingListName(
+            listId: _editingListId!,
+            listName: listName,
+          );
+        }
 
-      if (mounted) {
-        // Reset loading state before navigation
-        setState(() {
-          _isSaving = false;
-        });
-        
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Grocery list created successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        
-        // Small delay to ensure UI updates before navigation
-        await Future.delayed(const Duration(milliseconds: 300));
-        
+        // Find new items (items not in the current list)
+        final existingItemIds = currentList.items.map((item) => item.itemId).toSet();
+        final newItems = _items.where((item) => !existingItemIds.contains(item.itemId)).toList();
+
+        // Add only new items
+        if (newItems.isNotEmpty) {
+          await _firebaseService.addItemsToListBatch(
+            listId: _editingListId!,
+            items: newItems,
+          );
+        }
+
         if (mounted) {
-          // Navigate back
-          Navigator.pop(context);
+          setState(() {
+            _isSaving = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(newItems.isEmpty 
+                ? 'List updated successfully!' 
+                : 'Added ${newItems.length} item(s) to list!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          
+          await Future.delayed(const Duration(milliseconds: 300));
+          
+          if (mounted) {
+            Navigator.pop(context, true); // Return true to indicate success
+          }
+        }
+      } else {
+        // Creating new list
+        final listId = await _firebaseService.createShoppingList(
+          userId: userId,
+          listName: listName,
+        );
+
+        // Add all items to the list in a single batch operation
+        await _firebaseService.addItemsToListBatch(
+          listId: listId,
+          items: _items,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Grocery list created successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          await Future.delayed(const Duration(milliseconds: 300));
+          
+          if (mounted) {
+            Navigator.pop(context, true);
+          }
         }
       }
     } catch (e) {
@@ -168,7 +240,7 @@ class _AddListScreenState extends State<AddListScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('New Grocery List'),
+        title: Text(_isEditMode ? 'Edit Grocery List' : 'New Grocery List'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -353,12 +425,35 @@ class _AddListScreenState extends State<AddListScreen> {
                   Icon(Icons.list, color: Colors.green, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'Items (${_items.length})',
+                    _isEditMode 
+                      ? 'All Items (${_items.length})' 
+                      : 'Items (${_items.length})',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (_isEditMode) ...[
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Edit Mode',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),
@@ -406,10 +501,12 @@ class _AddListScreenState extends State<AddListScreen> {
             SizedBox(
               width: double.infinity,
               child: CustomButton(
-                text: _isSaving ? 'Saving...' : 'Save Grocery List',
+                text: _isSaving 
+                  ? 'Saving...' 
+                  : (_isEditMode ? 'Update List' : 'Save Grocery List'),
                 onPressed: _isSaving ? null : _saveShoppingList,
                 isLoading: _isSaving,
-                icon: Icons.save,
+                icon: _isEditMode ? Icons.update : Icons.save,
                 height: 56,
               ),
             ),

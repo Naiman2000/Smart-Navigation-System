@@ -225,6 +225,21 @@ class FirebaseService {
     }
   }
 
+  /// Update shopping list name
+  Future<void> updateShoppingListName({
+    required String listId,
+    required String listName,
+  }) async {
+    try {
+      await _firestore.collection('shopping_lists').doc(listId).update({
+        'listName': listName,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      throw Exception('Failed to update list name: $e');
+    }
+  }
+
   /// Add item to shopping list
   Future<void> addItemToList({
     required String listId,

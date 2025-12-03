@@ -161,10 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildFeatureCard(
                   context,
-                  'Add Groceries',
+                  'New List',
                   Icons.add_shopping_cart,
                   AppTheme.accentColor,
-                  'Add items to list',
+                  'Create grocery list',
                   '/addList',
                 ),
                 _buildFeatureCard(

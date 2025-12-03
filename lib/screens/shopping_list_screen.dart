@@ -81,6 +81,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
+  Future<void> _editList(ShoppingListModel list) async {
+    // Navigate to add list screen with existing list data for editing
+    final result = await Navigator.pushNamed(
+      context,
+      '/addList',
+      arguments: list,
+    );
+    
+    // Refresh lists after editing
+    if (result == true) {
+      _loadShoppingLists();
+    }
+  }
+
   Future<void> _deleteList(String listId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -178,7 +192,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         onPressed: () => Navigator.pushNamed(context, '/addList'),
         backgroundColor: Colors.green,
         icon: const Icon(Icons.add),
-            label: const Text('Add Groceries'),
+        label: const Text('New List'),
+        tooltip: 'Create a new grocery list',
       ),
     );
   }
@@ -297,6 +312,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => _editList(list),
+                    tooltip: 'Edit list',
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
