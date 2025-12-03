@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
 import '../services/firebase_service.dart';
