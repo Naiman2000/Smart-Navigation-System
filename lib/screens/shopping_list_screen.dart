@@ -127,7 +127,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Shopping Lists'),
+        title: const Text('My Grocery Lists'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -178,7 +178,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         onPressed: () => Navigator.pushNamed(context, '/addList'),
         backgroundColor: Colors.green,
         icon: const Icon(Icons.add),
-        label: const Text('Add Items'),
+            label: const Text('Add Groceries'),
       ),
     );
   }
@@ -195,7 +195,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'No Shopping Lists',
+            'No Grocery Lists Yet',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -204,7 +204,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Create your first shopping list',
+            'Start by creating your first grocery list',
             style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 32),

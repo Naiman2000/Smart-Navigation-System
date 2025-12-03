@@ -75,7 +75,7 @@ class SmartNavigationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Smart Navigation System',
+      title: 'Grocery Navigator',
       theme: AppTheme.lightTheme,
       // Start app from the Login Screen
       initialRoute: '/login',

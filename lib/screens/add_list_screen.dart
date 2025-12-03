@@ -148,7 +148,7 @@ class _AddListScreenState extends State<AddListScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('New Shopping List'),
+        title: const Text('New Grocery List'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -200,7 +200,7 @@ class _AddListScreenState extends State<AddListScreen> {
                         const Icon(Icons.shopping_basket, color: Colors.green),
                         const SizedBox(width: 8),
                         const Text(
-                          'List Name',
+                          'Grocery List Name',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -212,7 +212,7 @@ class _AddListScreenState extends State<AddListScreen> {
                     TextField(
                       controller: _listNameController,
                       decoration: InputDecoration(
-                        hintText: 'e.g., Weekly Groceries',
+                        hintText: 'e.g., Weekly Shopping, Party Supplies',
                         prefixIcon: const Icon(Icons.label),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -241,7 +241,7 @@ class _AddListScreenState extends State<AddListScreen> {
                         const Icon(Icons.add_circle, color: Colors.green),
                         const SizedBox(width: 8),
                         const Text(
-                          'Add Items',
+                          'Add Grocery Items',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -255,8 +255,8 @@ class _AddListScreenState extends State<AddListScreen> {
                     TextField(
                       controller: _itemNameController,
                       decoration: InputDecoration(
-                        labelText: 'Item Name',
-                        hintText: 'e.g., Milk',
+                        labelText: 'Product Name',
+                        hintText: 'e.g., Milk, Bread, Eggs',
                         prefixIcon: const Icon(Icons.shopping_cart),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -386,7 +386,7 @@ class _AddListScreenState extends State<AddListScreen> {
             SizedBox(
               width: double.infinity,
               child: CustomButton(
-                text: _isSaving ? 'Saving...' : 'Save Shopping List',
+                text: _isSaving ? 'Saving...' : 'Save Grocery List',
                 onPressed: _isSaving ? null : _saveShoppingList,
                 isLoading: _isSaving,
                 icon: Icons.save,

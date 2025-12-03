@@ -273,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.navigation,
+                        Icons.shopping_cart,
                         size: 64,
                         color: AppTheme.primaryColor,
                       ),
@@ -283,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Title
                   Text(
-                    'Smart Navigation',
+                    'Grocery Navigator',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
@@ -292,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingS),
                   Text(
-                    'Your Personal Shopping Assistant',
+                    'Your Smart Grocery Shopping Assistant',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: AppTheme.textSecondary,
                     ),

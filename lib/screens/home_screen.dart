@@ -22,7 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Smart Navigation'),
+        title: Row(
+          children: [
+            const Icon(Icons.shopping_cart, size: 24),
+            const SizedBox(width: AppTheme.spacingS),
+            const Text('Grocery Navigator'),
+          ],
+        ),
         actions: [
           Semantics(
             label: 'Profile button',
@@ -91,11 +97,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: AppTheme.spacingM),
-                    Text(
-                      'Your smart shopping assistant is here to help you navigate the store efficiently.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textOnPrimary.withOpacity(0.9),
-                      ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.store,
+                          color: AppTheme.textOnPrimary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: AppTheme.spacingS),
+                        Expanded(
+                          child: Text(
+                            'Find your groceries faster with smart in-store navigation',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textOnPrimary.withOpacity(0.9),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -105,12 +123,22 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: AppTheme.spacingL),
 
             // Features Section
-            Text(
-              'Features',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.shopping_bag,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Text(
+                  'Shopping Tools',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppTheme.spacingM),
 
@@ -125,34 +153,34 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildFeatureCard(
                   context,
-                  'Shopping List',
+                  'My Lists',
                   Icons.shopping_basket,
                   AppTheme.secondaryColor,
-                  'View your lists',
+                  'View grocery lists',
                   '/shoppingList',
                 ),
                 _buildFeatureCard(
                   context,
-                  'Add Items',
-                  Icons.add_circle_outline,
+                  'Add Groceries',
+                  Icons.add_shopping_cart,
                   AppTheme.accentColor,
-                  'Create new list',
+                  'Add items to list',
                   '/addList',
                 ),
                 _buildFeatureCard(
                   context,
-                  'Store Map',
-                  Icons.map_outlined,
+                  'Store Aisles',
+                  Icons.storefront,
                   const Color(0xFF9C27B0), // Purple
-                  'Navigate store',
+                  'Find products',
                   '/map',
                 ),
                 _buildFeatureCard(
                   context,
-                  'Profile',
+                  'My Account',
                   Icons.person_outline,
                   const Color(0xFF009688), // Teal
-                  'Account settings',
+                  'Settings & profile',
                   '/profile',
                 ),
               ],
@@ -161,12 +189,22 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: AppTheme.spacingL),
 
             // Quick Actions
-            Text(
-              'Quick Actions',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.flash_on,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Text(
+                  'Quick Actions',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppTheme.spacingM),
 
@@ -193,13 +231,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       title: Text(
-                        'Create Shopping List',
+                        'Create Grocery List',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
-                        'Start a new shopping list',
+                        'Add items to your shopping list',
                         style: theme.textTheme.bodySmall,
                       ),
                       trailing: const Icon(
@@ -231,13 +269,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       title: Text(
-                        'View Store Map',
+                        'Browse Store Aisles',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
-                        'Navigate to products',
+                        'Find where products are located',
                         style: theme.textTheme.bodySmall,
                       ),
                       trailing: const Icon(
@@ -261,12 +299,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: Semantics(
-        label: 'Create new shopping list',
+        label: 'Create new grocery list',
         button: true,
         child: FloatingActionButton.extended(
           onPressed: () => Navigator.pushNamed(context, '/addList'),
-          icon: const Icon(Icons.add),
-          label: const Text('New List'),
+          icon: const Icon(Icons.shopping_cart),
+          label: const Text('New Grocery List'),
         ),
       ),
     );

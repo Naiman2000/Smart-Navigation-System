@@ -100,7 +100,7 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Store Navigation'),
+        title: const Text('Store Aisles & Navigation'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
         elevation: 0,
