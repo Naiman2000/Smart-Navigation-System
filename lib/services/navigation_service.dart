@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'beacon_service.dart';
 import '../models/product_model.dart';
 
@@ -24,7 +25,7 @@ class NavigationService {
   Position? calculatePosition(List<BeaconData> beacons) {
     // Need at least 3 beacons for trilateration
     if (beacons.length < 3) {
-      print('Need at least 3 beacons for position calculation');
+      debugPrint('Need at least 3 beacons for position calculation');
       return null;
     }
 
@@ -66,7 +67,7 @@ class NavigationService {
       _currentPosition = position;
       return position;
     } catch (e) {
-      print('Error calculating position: $e');
+      debugPrint('Error calculating position: $e');
       return null;
     }
   }

@@ -186,7 +186,6 @@ class AppTheme {
         tertiary: accentColor,
         error: errorColor,
         surface: surfaceColor,
-        background: backgroundColor,
         onPrimary: textOnPrimary,
         onSecondary: textOnPrimary,
         onError: textOnPrimary,

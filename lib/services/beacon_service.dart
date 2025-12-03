@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class BeaconService {
@@ -36,7 +37,7 @@ class BeaconService {
   Future<bool> initializeBluetooth() async {
     try {
       // Check if Bluetooth is available
-      if (await FlutterBluePlus.isAvailable == false) {
+      if (await FlutterBluePlus.isSupported == false) {
         throw Exception('Bluetooth not available on this device');
       }
 
@@ -49,7 +50,7 @@ class BeaconService {
 
       return true;
     } catch (e) {
-      print('Failed to initialize Bluetooth: $e');
+      debugPrint('Failed to initialize Bluetooth: $e');
       return false;
     }
   }
@@ -61,7 +62,7 @@ class BeaconService {
   /// Start scanning for beacons
   Future<void> startScanning() async {
     if (_isScanning) {
-      print('Already scanning');
+      debugPrint('Already scanning');
       return;
     }
 
@@ -101,7 +102,7 @@ class BeaconService {
         }
       });
 
-      print('Beacon scanning started');
+      debugPrint('Beacon scanning started');
     } catch (e) {
       _isScanning = false;
       throw Exception('Failed to start scanning: $e');
@@ -115,9 +116,9 @@ class BeaconService {
       _isScanning = false;
       _detectedBeacons.clear();
       _rssiBuffer.clear();
-      print('Beacon scanning stopped');
+      debugPrint('Beacon scanning stopped');
     } catch (e) {
-      print('Failed to stop scanning: $e');
+      debugPrint('Failed to stop scanning: $e');
     }
   }
 

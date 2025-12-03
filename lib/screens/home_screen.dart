@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 'Welcome back!',
                                 style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: AppTheme.textOnPrimary.withOpacity(0.9),
+                                  color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
                                 ),
                               ),
                               const SizedBox(height: AppTheme.spacingXS),
@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             'Find your groceries faster with smart in-store navigation',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textOnPrimary.withOpacity(0.9),
+                              color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
                             ),
                           ),
                         ),
@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(AppTheme.spacingS),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                         ),
                         child: const Icon(
@@ -260,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(AppTheme.spacingS),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondaryColor.withOpacity(0.1),
+                          color: AppTheme.secondaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                         ),
                         child: const Icon(
@@ -340,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.spacingS),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusM),
                   ),
                   child: Icon(

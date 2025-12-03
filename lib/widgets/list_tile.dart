@@ -104,7 +104,7 @@ class CustomListTile extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: (leadingIconColor ?? Colors.green).withOpacity(0.1),
+          color: (leadingIconColor ?? Colors.green).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(

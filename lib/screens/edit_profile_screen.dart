@@ -182,7 +182,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(AppTheme.spacingM),
                         decoration: BoxDecoration(
-                          color: AppTheme.errorColor.withOpacity(0.1),
+                          color: AppTheme.errorColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                           border: Border.all(color: AppTheme.errorColor),
                         ),
