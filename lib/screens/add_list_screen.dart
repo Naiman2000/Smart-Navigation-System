@@ -116,30 +116,50 @@ class _AddListScreenState extends State<AddListScreen> {
         listName: listName,
       );
 
-      // Add all items to the list
-      for (final item in _items) {
-        await _firebaseService.addItemToList(
-          listId: listId,
-          item: item,
-        );
-      }
+      // Add all items to the list in a single batch operation
+      await _firebaseService.addItemsToListBatch(
+        listId: listId,
+        items: _items,
+      );
 
       if (mounted) {
+        // Reset loading state before navigation
+        setState(() {
+          _isSaving = false;
+        });
+        
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Shopping list created successfully!'),
+            content: Text('Grocery list created successfully!'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
         
-        // Navigate back
-        Navigator.pop(context);
+        // Small delay to ensure UI updates before navigation
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (mounted) {
+          // Navigate back
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to save list: $e';
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to save list: ${e.toString()}';
+          _isSaving = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

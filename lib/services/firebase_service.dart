@@ -257,6 +257,43 @@ class FirebaseService {
     }
   }
 
+  /// Add multiple items to shopping list in a single batch operation (more efficient)
+  Future<void> addItemsToListBatch({
+    required String listId,
+    required List<ShoppingItem> items,
+  }) async {
+    try {
+      if (items.isEmpty) return;
+
+      final listDoc = _firestore.collection('shopping_lists').doc(listId);
+
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(listDoc);
+        if (!snapshot.exists) {
+          throw Exception('Shopping list not found');
+        }
+
+        final data = snapshot.data()!;
+        final existingItems = (data['items'] as List<dynamic>)
+            .map((e) => e as Map<String, dynamic>)
+            .toList();
+
+        // Add all new items at once
+        for (final item in items) {
+          existingItems.add(item.toJson());
+        }
+
+        transaction.update(listDoc, {
+          'items': existingItems,
+          'totalItems': existingItems.length,
+          'updatedAt': Timestamp.now(),
+        });
+      });
+    } catch (e) {
+      throw Exception('Failed to add items: $e');
+    }
+  }
+
   /// Update item status (completed/incomplete)
   Future<void> updateItemStatus({
     required String listId,
