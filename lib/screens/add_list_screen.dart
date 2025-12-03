@@ -38,12 +38,14 @@ class _AddListScreenState extends State<AddListScreen> {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is ShoppingListModel) {
       final existingList = arguments;
-      setState(() {
-        _isEditMode = true;
-        _editingListId = existingList.listId;
-        _listNameController.text = existingList.listName;
-        _items.addAll(existingList.items);
-      });
+      if (mounted) {
+        setState(() {
+          _isEditMode = true;
+          _editingListId = existingList.listId;
+          _listNameController.text = existingList.listName;
+          _items.addAll(existingList.items);
+        });
+      }
     }
   }
 
@@ -137,7 +139,7 @@ class _AddListScreenState extends State<AddListScreen> {
     try {
       if (_isEditMode && _editingListId != null) {
         // Editing existing list
-        // Get current list to compare items
+        // Get current list to preserve item completion status
         final currentList = await _firebaseService.getShoppingList(_editingListId!);
         if (currentList == null) {
           throw Exception('List not found');
@@ -151,17 +153,29 @@ class _AddListScreenState extends State<AddListScreen> {
           );
         }
 
-        // Find new items (items not in the current list)
-        final existingItemIds = currentList.items.map((item) => item.itemId).toSet();
-        final newItems = _items.where((item) => !existingItemIds.contains(item.itemId)).toList();
+        // Preserve completion status for existing items
+        final existingItemsMap = {
+          for (var item in currentList.items) item.itemId: item
+        };
+        
+        // Merge completion status from existing items into current items
+        final updatedItems = _items.map((item) {
+          final existingItem = existingItemsMap[item.itemId];
+          if (existingItem != null) {
+            // Preserve completion status and addedAt timestamp from existing item
+            return item.copyWith(
+              isCompleted: existingItem.isCompleted,
+              addedAt: existingItem.addedAt,
+            );
+          }
+          return item;
+        }).toList();
 
-        // Add only new items
-        if (newItems.isNotEmpty) {
-          await _firebaseService.addItemsToListBatch(
-            listId: _editingListId!,
-            items: newItems,
-          );
-        }
+        // Update all items (handles adds, updates, and deletes)
+        await _firebaseService.updateShoppingListItems(
+          listId: _editingListId!,
+          items: updatedItems,
+        );
 
         if (mounted) {
           setState(() {
@@ -169,12 +183,10 @@ class _AddListScreenState extends State<AddListScreen> {
           });
           
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(newItems.isEmpty 
-                ? 'List updated successfully!' 
-                : 'Added ${newItems.length} item(s) to list!'),
+            const SnackBar(
+              content: Text('List updated successfully!'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
+              duration: Duration(seconds: 2),
             ),
           );
           

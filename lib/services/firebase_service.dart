@@ -396,6 +396,37 @@ class FirebaseService {
     }
   }
 
+  /// Update all items in shopping list (replaces entire items array)
+  Future<void> updateShoppingListItems({
+    required String listId,
+    required List<ShoppingItem> items,
+  }) async {
+    try {
+      final listDoc = _firestore.collection('shopping_lists').doc(listId);
+
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(listDoc);
+        if (!snapshot.exists) {
+          throw Exception('Shopping list not found');
+        }
+
+        // Calculate counts
+        final completedCount = items
+            .where((item) => item.isCompleted)
+            .length;
+
+        transaction.update(listDoc, {
+          'items': items.map((item) => item.toJson()).toList(),
+          'totalItems': items.length,
+          'completedItems': completedCount,
+          'updatedAt': Timestamp.now(),
+        });
+      });
+    } catch (e) {
+      throw Exception('Failed to update list items: $e');
+    }
+  }
+
   /// Delete entire shopping list
   Future<void> deleteShoppingList(String listId) async {
     try {
