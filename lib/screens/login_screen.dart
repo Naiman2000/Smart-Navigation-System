@@ -3,6 +3,7 @@ import '../widgets/input_field.dart';
 import '../widgets/custom_button.dart';
 import '../services/firebase_service.dart';
 import '../services/credentials_service.dart';
+import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -117,15 +118,23 @@ class _LoginScreenState extends State<LoginScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
+            const Icon(Icons.error_outline, color: AppTheme.textOnPrimary),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: AppTheme.textOnPrimary),
+              ),
+            ),
           ],
         ),
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: AppTheme.errorColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusS),
+        ),
+        margin: const EdgeInsets.all(AppTheme.spacingM),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -136,11 +145,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+        builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.lock_reset, color: Colors.green),
-            SizedBox(width: 8),
+            Icon(Icons.lock_reset, color: AppTheme.primaryColor),
+            SizedBox(width: AppTheme.spacingS),
             Text('Reset Password'),
           ],
         ),
@@ -151,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
               'Enter your email address and we\'ll send you a link to reset your password.',
               style: TextStyle(fontSize: 14),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingM),
             TextField(
               controller: emailController,
               decoration: InputDecoration(
@@ -159,10 +168,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'Enter your email',
                 prefixIcon: const Icon(Icons.email_outlined),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
                 ),
                 filled: true,
-                fillColor: Colors.grey.shade50,
+                fillColor: AppTheme.surfaceColor,
               ),
               keyboardType: TextInputType.emailAddress,
               textCapitalization: TextCapitalization.none,
@@ -185,8 +194,8 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: AppTheme.textOnPrimary,
             ),
             child: const Text('Send Reset Link'),
           ),
@@ -211,8 +220,8 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (context) => AlertDialog(
             title: const Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 8),
+                Icon(Icons.check_circle, color: AppTheme.successColor),
+                SizedBox(width: AppTheme.spacingS),
                 Text('Email Sent'),
               ],
             ),
@@ -241,38 +250,55 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(AppTheme.spacingL),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icon
-                  const Icon(Icons.navigation, size: 80, color: Colors.green),
-                  const SizedBox(height: 16),
+                  // Logo/Icon with animation
+                  Hero(
+                    tag: 'app_logo',
+                    child: Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.navigation,
+                        size: 64,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingL),
 
                   // Title
-                  const Text(
+                  Text(
                     'Smart Navigation',
-                    style: TextStyle(
-                      fontSize: 32,
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppTheme.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
+                  const SizedBox(height: AppTheme.spacingS),
+                  Text(
                     'Your Personal Shopping Assistant',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppTheme.spacingXXL),
 
                   // Email Field
                   InputField(
@@ -283,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     validator: InputValidators.email(),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.spacingL),
 
                   // Password Field
                   InputField(
@@ -294,47 +320,53 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     validator: InputValidators.required('Password'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppTheme.spacingM),
 
                   // Remember Me Checkbox
-                  Row(
-                    children: [
-                      SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: (value) {
-                            setState(() {
-                              _rememberMe = value ?? false;
-                            });
-                          },
-                          activeColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                  Semantics(
+                    label: 'Remember me checkbox',
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          height: AppTheme.touchTargetMin,
+                          width: AppTheme.touchTargetMin,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
+                            activeColor: AppTheme.primaryColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _rememberMe = !_rememberMe;
-                          });
-                        },
-                        child: const Text(
-                          'Remember me',
-                          style: TextStyle(fontSize: 14, color: Colors.black87),
+                        const SizedBox(width: AppTheme.spacingS),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _rememberMe = !_rememberMe;
+                              });
+                            },
+                            child: Text(
+                              'Remember me',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _handleForgotPassword,
-                        child: const Text('Forgot Password?'),
-                      ),
-                    ],
+                        TextButton(
+                          onPressed: _handleForgotPassword,
+                          child: const Text('Forgot Password?'),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppTheme.spacingL),
 
                   // Login Button
                   CustomButton(
@@ -342,16 +374,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _handleLogin,
                     isLoading: _isLoading,
                     icon: Icons.login,
+                    semanticLabel: 'Login button',
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppTheme.spacingL),
 
                   // Register Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Don't have an account? ",
-                        style: TextStyle(color: Colors.grey),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {

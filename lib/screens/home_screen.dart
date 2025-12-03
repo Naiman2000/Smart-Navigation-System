@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,42 +17,45 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = _firebaseService.currentUser;
     final displayName = user?.displayName ?? 'User';
 
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Smart Navigation'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
-            tooltip: 'Profile',
+          Semantics(
+            label: 'Profile button',
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () => Navigator.pushNamed(context, '/profile'),
+              tooltip: 'Profile',
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome Section
             Card(
-              elevation: 3,
+              elevation: AppTheme.elevation4,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppTheme.radiusL),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green.shade600, Colors.green.shade400],
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.primaryColor, AppTheme.primaryLight],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
                 ),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppTheme.spacingL),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -59,28 +63,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(
                           Icons.waving_hand,
-                          color: Colors.white,
+                          color: AppTheme.textOnPrimary,
                           size: 32,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppTheme.spacingM),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Welcome back!',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white.withOpacity(0.9),
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: AppTheme.textOnPrimary.withOpacity(0.9),
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: AppTheme.spacingXS),
                               Text(
                                 displayName,
-                                style: const TextStyle(
-                                  fontSize: 22,
+                                style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: AppTheme.textOnPrimary,
                                 ),
                               ),
                             ],
@@ -88,12 +90,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppTheme.spacingM),
                     Text(
                       'Your smart shopping assistant is here to help you navigate the store efficiently.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textOnPrimary.withOpacity(0.9),
                       ),
                     ),
                   ],
@@ -101,33 +102,32 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingL),
 
             // Features Section
             Text(
               'Features',
-              style: TextStyle(
-                fontSize: 20,
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingM),
 
             // Features Grid
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.1,
+              crossAxisSpacing: AppTheme.spacingM,
+              mainAxisSpacing: AppTheme.spacingM,
+              childAspectRatio: 1.2, // Increased to prevent overflow
               children: [
                 _buildFeatureCard(
                   context,
                   'Shopping List',
                   Icons.shopping_basket,
-                  Colors.blue,
+                  AppTheme.secondaryColor,
                   'View your lists',
                   '/shoppingList',
                 ),
@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   'Add Items',
                   Icons.add_circle_outline,
-                  Colors.orange,
+                  AppTheme.accentColor,
                   'Create new list',
                   '/addList',
                 ),
@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   'Store Map',
                   Icons.map_outlined,
-                  Colors.purple,
+                  const Color(0xFF9C27B0), // Purple
                   'Navigate store',
                   '/map',
                 ),
@@ -151,87 +151,123 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   'Profile',
                   Icons.person_outline,
-                  Colors.teal,
+                  const Color(0xFF009688), // Teal
                   'Account settings',
                   '/profile',
                 ),
               ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingL),
 
             // Quick Actions
             Text(
               'Quick Actions',
-              style: TextStyle(
-                fontSize: 20,
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingM),
 
             Card(
-              elevation: 2,
+              elevation: AppTheme.elevation2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
               ),
               child: Column(
                 children: [
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(8),
+                  Semantics(
+                    label: 'Create shopping list',
+                    button: true,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingS),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                        ),
+                        child: const Icon(
+                          Icons.shopping_cart,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.shopping_cart,
-                        color: Colors.green,
+                      title: Text(
+                        'Create Shopping List',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Start a new shopping list',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      onTap: () => Navigator.pushNamed(context, '/addList'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingM,
+                        vertical: AppTheme.spacingS,
                       ),
                     ),
-                    title: const Text(
-                      'Create Shopping List',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: const Text('Start a new shopping list'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => Navigator.pushNamed(context, '/addList'),
                   ),
                   const Divider(height: 1),
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
+                  Semantics(
+                    label: 'View store map',
+                    button: true,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingS),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                        ),
+                        child: const Icon(
+                          Icons.map,
+                          color: AppTheme.secondaryColor,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.map,
-                        color: Colors.blue,
+                      title: Text(
+                        'View Store Map',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Navigate to products',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      onTap: () => Navigator.pushNamed(context, '/map'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingM,
+                        vertical: AppTheme.spacingS,
                       ),
                     ),
-                    title: const Text(
-                      'View Store Map',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: const Text('Navigate to products'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => Navigator.pushNamed(context, '/map'),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: AppTheme.spacingXXL),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, '/addList'),
-        backgroundColor: Colors.green,
-        icon: const Icon(Icons.add),
-        label: const Text('New List'),
+      floatingActionButton: Semantics(
+        label: 'Create new shopping list',
+        button: true,
+        child: FloatingActionButton.extended(
+          onPressed: () => Navigator.pushNamed(context, '/addList'),
+          icon: const Icon(Icons.add),
+          label: const Text('New List'),
+        ),
       ),
     );
   }
@@ -244,51 +280,62 @@ class _HomeScreenState extends State<HomeScreen> {
     String subtitle,
     String route,
   ) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, route),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+    
+    return Semantics(
+      label: '$title: $subtitle',
+      button: true,
+      child: Card(
+        elevation: AppTheme.elevation2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        ),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, route),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingS),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 28,
+                    color: color,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: color,
+                const SizedBox(height: AppTheme.spacingS),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                const SizedBox(height: AppTheme.spacingXS),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

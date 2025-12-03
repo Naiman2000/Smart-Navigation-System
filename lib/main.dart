@@ -11,6 +11,7 @@ import 'screens/map_screen.dart';
 import 'screens/add_list_screen.dart';
 import 'screens/shopping_list_screen.dart';
 import 'screens/profile_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -75,11 +76,7 @@ class SmartNavigationApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Smart Navigation System',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.white,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: AppTheme.lightTheme,
       // Start app from the Login Screen
       initialRoute: '/login',
       routes: {

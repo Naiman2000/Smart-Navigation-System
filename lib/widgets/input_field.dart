@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 enum InputFieldType {
   text,
@@ -71,103 +72,155 @@ class _InputFieldState extends State<InputField> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.label != null) ...[
-          Text(
-            widget.label!,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+    final theme = Theme.of(context);
+    
+    return Semantics(
+      label: widget.label ?? widget.hintText,
+      textField: true,
+      enabled: widget.enabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.label != null) ...[
+            Text(
+              widget.label!,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingS),
+          ],
+          TextFormField(
+            controller: widget.controller,
+            focusNode: widget.focusNode,
+            enabled: widget.enabled,
+            maxLines: widget.type == InputFieldType.multiline ? null : widget.maxLines,
+            maxLength: widget.maxLength,
+            obscureText: widget.type == InputFieldType.password && _obscureText,
+            keyboardType: _getKeyboardType(),
+            textInputAction: widget.textInputAction ?? _getTextInputAction(),
+            validator: widget.validator,
+            onChanged: widget.onChanged,
+            onFieldSubmitted: widget.onSubmitted,
+            style: theme.textTheme.bodyLarge,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textDisabled,
+              ),
+              prefixIcon: widget.prefixIcon != null
+                  ? Icon(
+                      widget.prefixIcon,
+                      color: AppTheme.primaryColor,
+                      size: 20,
+                    )
+                  : null,
+              suffixIcon: _buildSuffixIcon(),
+              filled: true,
+              fillColor: widget.enabled
+                  ? AppTheme.surfaceColor
+                  : AppTheme.borderColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.borderColor,
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.borderColor,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryColor,
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.errorColor,
+                  width: 1,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.errorColor,
+                  width: 2,
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                borderSide: const BorderSide(
+                  color: AppTheme.borderColor,
+                  width: 1,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingM,
+                vertical: AppTheme.spacingM,
+              ),
+              counterText: '', // Hide character counter
             ),
           ),
-          const SizedBox(height: 8),
         ],
-        TextFormField(
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          enabled: widget.enabled,
-          maxLines: widget.type == InputFieldType.multiline ? null : widget.maxLines,
-          maxLength: widget.maxLength,
-          obscureText: widget.type == InputFieldType.password && _obscureText,
-          keyboardType: _getKeyboardType(),
-          textInputAction: widget.textInputAction ?? _getTextInputAction(),
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          onFieldSubmitted: widget.onSubmitted,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            hintStyle: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 14,
-            ),
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: Colors.green, size: 20)
-                : null,
-            suffixIcon: _buildSuffixIcon(),
-            filled: true,
-            fillColor: widget.enabled ? Colors.grey.shade50 : Colors.grey.shade200,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.green, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 1),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            counterText: '', // Hide character counter
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget? _buildSuffixIcon() {
     if (widget.type == InputFieldType.password) {
-      return IconButton(
-        icon: Icon(
-          _obscureText ? Icons.visibility_off : Icons.visibility,
-          color: Colors.grey,
-          size: 20,
+      return Semantics(
+        label: _obscureText ? 'Show password' : 'Hide password',
+        button: true,
+        child: IconButton(
+          icon: Icon(
+            _obscureText ? Icons.visibility_off : Icons.visibility,
+            color: AppTheme.textSecondary,
+            size: 20,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscureText = !_obscureText;
+            });
+          },
+          tooltip: _obscureText ? 'Show password' : 'Hide password',
         ),
-        onPressed: () {
-          setState(() {
-            _obscureText = !_obscureText;
-          });
-        },
       );
     }
 
     if (_showClearButton && widget.enabled) {
-      return IconButton(
-        icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
-        onPressed: () {
-          widget.controller?.clear();
-          widget.onChanged?.call('');
-        },
+      return Semantics(
+        label: 'Clear input',
+        button: true,
+        child: IconButton(
+          icon: const Icon(
+            Icons.clear,
+            color: AppTheme.textSecondary,
+            size: 20,
+          ),
+          onPressed: () {
+            widget.controller?.clear();
+            widget.onChanged?.call('');
+          },
+          tooltip: 'Clear',
+        ),
       );
     }
 
     if (widget.suffixIcon != null) {
-      return Icon(widget.suffixIcon, color: Colors.grey, size: 20);
+      return Icon(
+        widget.suffixIcon,
+        color: AppTheme.textSecondary,
+        size: 20,
+      );
     }
 
     return null;
