@@ -1,0 +1,39 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="128" cy="128" r="128" fill="url(#bgGradient)"/>
+  
+  <!-- Location Pin (White) -->
+  <g filter="url(#shadow)">
+    <path d="M 128 210 
+             C 128 210 58 135 58 95 
+             A 70 70 0 1 1 198 95 
+             C 198 135 128 210 128 210 Z" 
+          fill="#FFFFFF"/>
+  </g>
+
+  <!-- Shopping Cart (Centered in Pin) -->
+  <!-- Shifted Y from 95 to 100 to center better visually in the round part of the pin -->
+  <g transform="translate(128, 100)">
+    <!-- Cart Basket -->
+    <path d="M -25 -15 L -20 15 L 20 15 L 25 -15 Z" 
+          fill="none" stroke="#2E7D32" stroke-width="5" stroke-linejoin="round"/>
+    
+    <!-- Cart Handle -->
+    <path d="M -25 -15 L -30 -25 L -15 -25" 
+          fill="none" stroke="#2E7D32" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          
+    <!-- Cart Wheels -->
+    <circle cx="-15" cy="23" r="4" fill="#2E7D32"/>
+    <circle cx="15" cy="23" r="4" fill="#2E7D32"/>
+  </g>
+</svg>

@@ -1,0 +1,26 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="128" height="128" rx="30" fill="url(#bgGradient)"/>
+  
+  <!-- Pin -->
+  <path d="M 64 105 
+           C 64 105 29 68 29 48 
+           A 35 35 0 1 1 99 48 
+           C 99 68 64 105 64 105 Z" 
+        fill="#FFFFFF"/>
+        
+  <!-- Simple Cart (Centered) -->
+  <g transform="translate(64, 50)">
+    <path d="M -12 -6 L -10 8 L 10 8 L 12 -6 Z" 
+          fill="none" stroke="#2E7D32" stroke-width="3"/>
+    <circle cx="-8" cy="12" r="2" fill="#2E7D32"/>
+    <circle cx="8" cy="12" r="2" fill="#2E7D32"/>
+  </g>
+</svg>
