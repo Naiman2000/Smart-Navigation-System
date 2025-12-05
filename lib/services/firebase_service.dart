@@ -158,17 +158,26 @@ class FirebaseService {
     }
   }
 
-  /// Get current user profile
+  /// Get current user profile (with caching)
   Future<UserModel?> getUserProfile(String userId) async {
-    try {
-      final doc = await _firestore.collection('users').doc(userId).get();
-      if (doc.exists && doc.data() != null) {
-        return UserModel.fromJson(doc.data()!);
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Failed to get user profile: $e');
-    }
+    return _cache.getOrFetch(
+      'user_profile_$userId',
+      () async {
+        try {
+          final doc = await _firestore
+              .collection('users')
+              .doc(userId)
+              .get(const GetOptions(source: Source.serverAndCache));
+          if (doc.exists && doc.data() != null) {
+            return UserModel.fromJson(doc.data()!);
+          }
+          return null;
+        } catch (e) {
+          throw Exception('Failed to get user profile: $e');
+        }
+      },
+      ttl: const Duration(minutes: 5),
+    );
   }
 
   /// Update user profile (creates if doesn't exist)
@@ -184,6 +193,9 @@ class FirebaseService {
         // Create new profile if it doesn't exist
         await userDoc.set(user.toJson());
       }
+      
+      // Invalidate cache after update
+      _cache.remove('user_profile_${user.userId}');
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
@@ -469,71 +481,88 @@ class FirebaseService {
   // PRODUCT METHODS
   // ============================================================================
 
-  /// Get all products
+  /// Get all products (with caching)
   Future<List<ProductModel>> getAllProducts() async {
-    try {
-      final snapshot = await _firestore
-          .collection('products')
-          .orderBy('name')
-          .get();
+    return _cache.getOrFetch(
+      'all_products',
+      () async {
+        try {
+          final snapshot = await _firestore
+              .collection('products')
+              .orderBy('name')
+              .get(const GetOptions(source: Source.serverAndCache));
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to get products: $e');
-    }
+          return snapshot.docs
+              .map((doc) => ProductModel.fromJson(doc.data()))
+              .toList();
+        } catch (e) {
+          throw Exception('Failed to get products: $e');
+        }
+      },
+      ttl: const Duration(minutes: 10),
+    );
   }
 
-  /// Get products by category
+  /// Get products by category (with caching)
   Future<List<ProductModel>> getProductsByCategory(String category) async {
-    try {
-      final snapshot = await _firestore
-          .collection('products')
-          .where('category', isEqualTo: category)
-          .orderBy('name')
-          .get();
+    return _cache.getOrFetch(
+      'products_category_$category',
+      () async {
+        try {
+          final snapshot = await _firestore
+              .collection('products')
+              .where('category', isEqualTo: category)
+              .orderBy('name')
+              .get(const GetOptions(source: Source.serverAndCache));
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to get products by category: $e');
-    }
+          return snapshot.docs
+              .map((doc) => ProductModel.fromJson(doc.data()))
+              .toList();
+        } catch (e) {
+          throw Exception('Failed to get products by category: $e');
+        }
+      },
+      ttl: const Duration(minutes: 10),
+    );
   }
 
-  /// Search products by name
+  /// Search products by name (optimized with caching)
   Future<List<ProductModel>> searchProducts(String query) async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
-          .orderBy('name')
-          .get();
-
+      // Use cached product list if available
+      final allProducts = await getAllProducts();
+      
       // Filter on client side for case-insensitive search
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .where(
-            (product) =>
-                product.name.toLowerCase().contains(query.toLowerCase()),
-          )
+      final lowercaseQuery = query.toLowerCase();
+      return allProducts
+          .where((product) => 
+              product.name.toLowerCase().contains(lowercaseQuery))
           .toList();
     } catch (e) {
       throw Exception('Failed to search products: $e');
     }
   }
 
-  /// Get product by ID
+  /// Get product by ID (with caching)
   Future<ProductModel?> getProduct(String productId) async {
-    try {
-      final doc = await _firestore.collection('products').doc(productId).get();
-      if (doc.exists && doc.data() != null) {
-        return ProductModel.fromJson(doc.data()!);
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Failed to get product: $e');
-    }
+    return _cache.getOrFetch(
+      'product_$productId',
+      () async {
+        try {
+          final doc = await _firestore
+              .collection('products')
+              .doc(productId)
+              .get(const GetOptions(source: Source.serverAndCache));
+          if (doc.exists && doc.data() != null) {
+            return ProductModel.fromJson(doc.data()!);
+          }
+          return null;
+        } catch (e) {
+          throw Exception('Failed to get product: $e');
+        }
+      },
+      ttl: const Duration(minutes: 10),
+    );
   }
 
   /// Get products by aisle

@@ -308,6 +308,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _shoppingLists.length,
+        // Add cache extent for better scrolling performance
+        cacheExtent: 200,
+        // Add physics for better performance
+        physics: const BouncingScrollPhysics(),
         itemBuilder: (context, index) {
           final list = _shoppingLists[index];
           return _buildShoppingListCard(list);

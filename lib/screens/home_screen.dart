@@ -37,78 +37,14 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome Section
-            Card(
+            const Card(
               elevation: AppTheme.elevation4,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusL)),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.primaryLight],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                ),
-                padding: const EdgeInsets.all(AppTheme.spacingL),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.waving_hand,
-                          color: AppTheme.textOnPrimary,
-                          size: 32,
-                        ),
-                        const SizedBox(width: AppTheme.spacingM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back!',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
-                                ),
-                              ),
-                              const SizedBox(height: AppTheme.spacingXS),
-                              Text(
-                                displayName,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textOnPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.spacingM),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.store,
-                          color: AppTheme.textOnPrimary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppTheme.spacingS),
-                        Expanded(
-                          child: Text(
-                            'Find your groceries faster with smart in-store navigation',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              child: _WelcomeCard(),
             ),
+
 
             const SizedBox(height: AppTheme.spacingL),
 
@@ -392,6 +328,86 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Extracted widget for better performance
+class _WelcomeCard extends StatelessWidget {
+  const _WelcomeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final firebaseService = FirebaseService();
+    final user = firebaseService.currentUser;
+    final displayName = user?.displayName ?? 'User';
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryColor, AppTheme.primaryLight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusL)),
+      ),
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.waving_hand,
+                color: AppTheme.textOnPrimary,
+                size: 32,
+              ),
+              const SizedBox(width: AppTheme.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome back!',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingXS),
+                    Text(
+                      displayName,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textOnPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingM),
+          Row(
+            children: [
+              const Icon(
+                Icons.store,
+                color: AppTheme.textOnPrimary,
+                size: 20,
+              ),
+              const SizedBox(width: AppTheme.spacingS),
+              Expanded(
+                child: Text(
+                  'Find your groceries faster with smart in-store navigation',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textOnPrimary.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
