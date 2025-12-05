@@ -245,59 +245,78 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           : _shoppingLists.isEmpty
           ? _buildEmptyState()
           : _buildShoppingLists(),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'shopping_list_fab', // Unique tag to prevent Hero conflicts
-        onPressed: () => Navigator.pushNamed(context, '/addList'),
-        backgroundColor: Colors.green,
-        icon: const Icon(Icons.add),
-        label: const Text('New List'),
-        tooltip: 'Create a new grocery list',
-      ),
+      // Only show FAB when there are existing lists (not in empty state)
+      floatingActionButton: _shoppingLists.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: 'shopping_list_fab', // Unique tag to prevent Hero conflicts
+              onPressed: () => Navigator.pushNamed(context, '/addList'),
+              backgroundColor: Colors.green,
+              icon: const Icon(Icons.add),
+              label: const Text('New List'),
+              tooltip: 'Create a new grocery list',
+            ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            size: 100,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No Grocery Lists Yet',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 120,
+              color: Colors.grey.shade300,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Start by creating your first grocery list',
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/addList'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+            const SizedBox(height: 32),
+            Text(
+              'No Grocery Lists Yet',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Start by creating your first grocery list',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 48),
+            // Compact, centered button (not full-width)
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/addList'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.add, size: 24),
+              label: const Text(
+                'Create New List',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            icon: const Icon(Icons.add),
-            label: const Text(
-              'Create New List',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
