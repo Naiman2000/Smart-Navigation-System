@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
@@ -241,8 +242,9 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
             
             // Handle main navigation back button
             final shouldPop = await _onWillPop();
-            if (shouldPop && context.mounted) {
-              Navigator.of(context).pop();
+            if (shouldPop) {
+              // User confirmed exit - actually exit the app
+              SystemNavigator.pop();
             }
           } catch (e) {
             debugPrint('Error in PopScope: $e');

@@ -299,16 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: Semantics(
-        label: 'Create new grocery list',
-        button: true,
-        child: FloatingActionButton.extended(
-          heroTag: 'home_screen_fab', // Unique tag to prevent Hero conflicts
-          onPressed: () => Navigator.pushNamed(context, '/addList'),
-          icon: const Icon(Icons.shopping_cart),
-          label: const Text('New Grocery List'),
-        ),
-      ),
     );
   }
 
