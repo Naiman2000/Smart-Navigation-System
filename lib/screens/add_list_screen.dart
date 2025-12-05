@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
+import '../models/product_model.dart';
 import '../services/firebase_service.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/product_search_field.dart';
 
 class AddListScreen extends StatefulWidget {
   const AddListScreen({super.key});
@@ -26,6 +28,8 @@ class _AddListScreenState extends State<AddListScreen> {
   String? _errorMessage;
   String? _editingListId; // Track if we're editing an existing list
   bool _isEditMode = false;
+  String? _selectedProductId; // Store the selected product ID from search
+  String? _lastSearchedProductName; // Track the last product name from search
 
   @override
   void initState() {
@@ -132,7 +136,7 @@ class _AddListScreenState extends State<AddListScreen> {
     setState(() {
       final item = ShoppingItem(
         itemId: DateTime.now().millisecondsSinceEpoch.toString(),
-        productId: '',
+        productId: _selectedProductId ?? '', // Use selected product ID if available
         productName: itemName,
         quantity: quantity,
         unit: unit.isNotEmpty ? unit : 'piece',
@@ -145,6 +149,8 @@ class _AddListScreenState extends State<AddListScreen> {
       _itemNameController.clear();
       _quantityController.clear();
       _unitController.clear();
+      _selectedProductId = null; // Clear the selected product ID
+      _lastSearchedProductName = null; // Clear the last searched product name
     });
 
     // Show confirmation
@@ -163,6 +169,34 @@ class _AddListScreenState extends State<AddListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Item removed')),
     );
+  }
+
+  String _getDefaultUnit(String category) {
+    switch (category.toLowerCase()) {
+      case 'dairy & eggs':
+      case 'dairy':
+        return 'liter';
+      case 'meat & seafood':
+      case 'meat':
+        return 'kg';
+      case 'produce':
+        return 'kg';
+      case 'beverages':
+        return 'liter';
+      case 'frozen foods':
+      case 'frozen':
+        return 'pack';
+      case 'pantry staples':
+      case 'pantry':
+        return 'piece';
+      case 'household items':
+      case 'household':
+        return 'piece';
+      case 'personal care':
+        return 'piece';
+      default:
+        return 'piece';
+    }
   }
 
   Future<void> _saveShoppingList() async {
@@ -459,20 +493,55 @@ class _AddListScreenState extends State<AddListScreen> {
                     ),
                     const SizedBox(height: 16),
                     
-                    // Item Name
-                    TextField(
-                      controller: _itemNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Product Name',
-                        hintText: 'e.g., Milk, Bread, Eggs',
-                        prefixIcon: const Icon(Icons.shopping_cart),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    // Product Search Field
+                    ProductSearchField(
+                      labelText: 'Product Name',
+                      hintText: 'Search for products...',
+                      onProductSelected: (ProductModel product) {
+                        setState(() {
+                          _itemNameController.text = product.name;
+                          _selectedProductId = product.productId; // Store the product ID
+                          _lastSearchedProductName = product.name; // Track the searched product name
+                          // Set default unit based on category if not set
+                          if (_unitController.text.isEmpty) {
+                            _unitController.text = _getDefaultUnit(product.category);
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Manual entry option
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _itemNameController,
+                            decoration: InputDecoration(
+                              labelText: 'Or enter manually',
+                              hintText: 'Type product name',
+                              prefixIcon: const Icon(Icons.edit),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                            ),
+                            textCapitalization: TextCapitalization.words,
+                            onChanged: (value) {
+                              // Clear selected product ID if user manually edits (different from searched product)
+                              if (_selectedProductId != null && 
+                                  _lastSearchedProductName != null &&
+                                  value != _lastSearchedProductName) {
+                                setState(() {
+                                  _selectedProductId = null;
+                                  _lastSearchedProductName = null;
+                                });
+                              }
+                            },
+                          ),
                         ),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                      ),
-                      textCapitalization: TextCapitalization.words,
+                      ],
                     ),
                     const SizedBox(height: 12),
                     
