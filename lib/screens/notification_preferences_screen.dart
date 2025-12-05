@@ -29,10 +29,17 @@ class _NotificationPreferencesScreenState
   @override
   void initState() {
     super.initState();
-    _loadUserPreferences();
+    // Delay loading to ensure navigation is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadUserPreferences();
+      }
+    });
   }
 
   Future<void> _loadUserPreferences() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoadingProfile = true;
       _errorMessage = null;
@@ -41,36 +48,48 @@ class _NotificationPreferencesScreenState
     try {
       final user = _firebaseService.currentUser;
       if (user == null) {
-        setState(() {
-          _errorMessage = 'User not logged in';
-          _isLoadingProfile = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'User not logged in';
+            _isLoadingProfile = false;
+          });
+        }
         return;
       }
 
-      final profile = await _firebaseService.getUserProfile(user.uid);
-      if (profile != null) {
+      final profile = await _firebaseService.getUserProfile(user.uid)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timed out. Please check your connection.');
+            },
+          );
+      if (mounted) {
+        if (profile != null) {
+          setState(() {
+            _notificationsEnabled = profile.preferences.notifications;
+            // For now, use the main notification setting for all sub-settings
+            // In the future, these could be stored separately in preferences
+            _shoppingListReminders = profile.preferences.notifications;
+            _storeUpdates = profile.preferences.notifications;
+            _promotionalOffers = false; // Default to false
+            _orderUpdates = profile.preferences.notifications;
+            _isLoadingProfile = false;
+          });
+        } else {
+          // Use defaults if profile doesn't exist
+          setState(() {
+            _isLoadingProfile = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _notificationsEnabled = profile.preferences.notifications;
-          // For now, use the main notification setting for all sub-settings
-          // In the future, these could be stored separately in preferences
-          _shoppingListReminders = profile.preferences.notifications;
-          _storeUpdates = profile.preferences.notifications;
-          _promotionalOffers = false; // Default to false
-          _orderUpdates = profile.preferences.notifications;
-          _isLoadingProfile = false;
-        });
-      } else {
-        // Use defaults if profile doesn't exist
-        setState(() {
+          _errorMessage = 'Failed to load preferences: ${e.toString()}';
           _isLoadingProfile = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load preferences: ${e.toString()}';
-        _isLoadingProfile = false;
-      });
     }
   }
 

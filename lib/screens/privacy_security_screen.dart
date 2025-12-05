@@ -73,18 +73,29 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         throw Exception('User email not found');
       }
 
-      // Re-authenticate with current password
+      // Re-authenticate with current password with timeout
       final credential = await _firebaseService.reauthenticateUser(
         email: email,
         password: _currentPasswordController.text,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Re-authentication timed out. Please check your connection.');
+        },
       );
 
-      // Update password
+      // Update password with timeout
       final authenticatedUser = credential.user;
       if (authenticatedUser == null) {
         throw Exception('Re-authentication failed');
       }
-      await authenticatedUser.updatePassword(newPassword);
+      await authenticatedUser.updatePassword(newPassword)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Password update timed out. Please check your connection.');
+            },
+          );
 
       if (mounted) {
         setState(() {

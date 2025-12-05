@@ -27,10 +27,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    // Delay loading to ensure navigation is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadUserProfile();
+      }
+    });
   }
 
   Future<void> _loadUserProfile() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoadingProfile = true;
       _errorMessage = null;
@@ -39,34 +46,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final user = _firebaseService.currentUser;
       if (user == null) {
-        setState(() {
-          _errorMessage = 'User not logged in';
-          _isLoadingProfile = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'User not logged in';
+            _isLoadingProfile = false;
+          });
+        }
         return;
       }
 
-      final profile = await _firebaseService.getUserProfile(user.uid);
-      if (profile != null) {
+      final profile = await _firebaseService.getUserProfile(user.uid)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timed out. Please check your connection.');
+            },
+          );
+      
+      if (mounted) {
+        if (profile != null) {
+          setState(() {
+            _userProfile = profile;
+            _nameController.text = profile.displayName;
+            _phoneController.text = profile.phoneNumber ?? '';
+            _isLoadingProfile = false;
+          });
+        } else {
+          // If profile doesn't exist, use auth user data
+          setState(() {
+            _nameController.text = user.displayName ?? 'User';
+            _phoneController.text = user.phoneNumber ?? '';
+            _isLoadingProfile = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _userProfile = profile;
-          _nameController.text = profile.displayName;
-          _phoneController.text = profile.phoneNumber ?? '';
-          _isLoadingProfile = false;
-        });
-      } else {
-        // If profile doesn't exist, use auth user data
-        setState(() {
-          _nameController.text = user.displayName ?? 'User';
-          _phoneController.text = user.phoneNumber ?? '';
+          _errorMessage = 'Failed to load profile: $e';
           _isLoadingProfile = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load profile: $e';
-        _isLoadingProfile = false;
-      });
     }
   }
 
@@ -101,18 +121,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ? null 
           : _phoneController.text.trim();
 
-      // Update Firebase Auth display name
-      await user.updateDisplayName(displayName);
-      await user.reload();
+      // Update Firebase Auth display name with timeout
+      await user.updateDisplayName(displayName)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Update timed out. Please check your connection.');
+            },
+          );
+      await user.reload()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Reload timed out. Please check your connection.');
+            },
+          );
 
-      // Update or create user profile in Firestore
+      // Update or create user profile in Firestore with timeout
       if (_userProfile != null) {
         // Update existing profile
         final updatedProfile = _userProfile!.copyWith(
           displayName: displayName,
           phoneNumber: phoneNumber,
         );
-        await _firebaseService.updateUserProfile(updatedProfile);
+        await _firebaseService.updateUserProfile(updatedProfile)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw Exception('Update timed out. Please check your connection.');
+              },
+            );
       } else {
         // Create new profile if it doesn't exist
         final newProfile = UserModel(
@@ -124,7 +162,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           lastLoginAt: DateTime.now(),
           preferences: UserPreferences.defaultPreferences(),
         );
-        await _firebaseService.updateUserProfile(newProfile);
+        await _firebaseService.updateUserProfile(newProfile)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw Exception('Update timed out. Please check your connection.');
+              },
+            );
       }
 
       if (mounted) {

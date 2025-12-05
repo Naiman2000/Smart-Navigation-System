@@ -48,6 +48,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         displayName: _nameController.text.trim(),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Registration timed out. Please check your connection and try again.');
+        },
       );
 
       if (user != null && mounted) {

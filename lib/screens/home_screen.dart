@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
+import 'main_navigation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,17 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text('Grocery Navigator'),
           ],
         ),
-        actions: [
-          Semantics(
-            label: 'Profile button',
-            button: true,
-            child: IconButton(
-              icon: const Icon(Icons.person),
-              onPressed: () => Navigator.pushNamed(context, '/profile'),
-              tooltip: 'Profile',
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -157,7 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icons.shopping_basket,
                   AppTheme.secondaryColor,
                   'View grocery lists',
-                  '/shoppingList',
+                  '', // Will switch to List tab
+                  tabIndex: 2, // List tab
                 ),
                 _buildFeatureCard(
                   context,
@@ -173,7 +164,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icons.storefront,
                   const Color(0xFF9C27B0), // Purple
                   'Find products',
-                  '/map',
+                  '', // Will switch to Map tab
+                  tabIndex: 1, // Map tab
                 ),
                 _buildFeatureCard(
                   context,
@@ -181,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icons.person_outline,
                   const Color(0xFF009688), // Teal
                   'Settings & profile',
-                  '/profile',
+                  '', // Will switch to Profile tab
+                  tabIndex: 3, // Profile tab
                 ),
               ],
             ),
@@ -283,7 +276,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         size: 16,
                         color: AppTheme.textSecondary,
                       ),
-                      onTap: () => Navigator.pushNamed(context, '/map'),
+                      onTap: () {
+                        // Switch to Map tab (index 1)
+                        final mainNav = context.getMainNavigationState();
+                        if (mainNav != null) {
+                          mainNav.switchToTab(1);
+                        } else {
+                          Navigator.pushReplacementNamed(context, '/home');
+                        }
+                      },
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppTheme.spacingM,
                         vertical: AppTheme.spacingS,
@@ -302,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: 'Create new grocery list',
         button: true,
         child: FloatingActionButton.extended(
+          heroTag: 'home_screen_fab', // Unique tag to prevent Hero conflicts
           onPressed: () => Navigator.pushNamed(context, '/addList'),
           icon: const Icon(Icons.shopping_cart),
           label: const Text('New Grocery List'),
@@ -316,8 +318,9 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData icon,
     Color color,
     String subtitle,
-    String route,
-  ) {
+    String route, {
+    int? tabIndex,
+  }) {
     final theme = Theme.of(context);
     
     return Semantics(
@@ -329,7 +332,20 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(AppTheme.radiusM),
         ),
         child: InkWell(
-          onTap: () => Navigator.pushNamed(context, route),
+          onTap: () {
+            if (tabIndex != null) {
+              // Switch to tab
+              final mainNav = context.getMainNavigationState();
+              if (mainNav != null) {
+                mainNav.switchToTab(tabIndex);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            } else if (route.isNotEmpty) {
+              // Navigate to route
+              Navigator.pushNamed(context, route);
+            }
+          },
           borderRadius: BorderRadius.circular(AppTheme.radiusM),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingM),

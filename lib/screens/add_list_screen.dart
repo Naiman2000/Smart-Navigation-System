@@ -20,6 +20,9 @@ class _AddListScreenState extends State<AddListScreen> {
   
   final List<ShoppingItem> _items = [];
   bool _isSaving = false;
+  bool _isLoadingEditData = false; // Track if we're loading edit data
+  int _loadRetryCount = 0; // Track retry attempts
+  static const int _maxRetries = 3; // Maximum retry attempts
   String? _errorMessage;
   String? _editingListId; // Track if we're editing an existing list
   bool _isEditMode = false;
@@ -27,23 +30,79 @@ class _AddListScreenState extends State<AddListScreen> {
   @override
   void initState() {
     super.initState();
-    // Load existing list data after the first frame
+    // Load existing list data after navigation completes
+    // Use multiple callbacks to ensure route is available
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadExistingListData();
+      // Wait a bit more to ensure route is fully established
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _loadExistingListData();
+        }
+      });
     });
   }
 
   void _loadExistingListData() {
-    // Check if we're editing an existing list
-    final arguments = ModalRoute.of(context)?.settings.arguments;
-    if (arguments is ShoppingListModel) {
-      final existingList = arguments;
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingEditData = true;
+    });
+    
+    try {
+      // Try to get arguments from route
+      final route = ModalRoute.of(context);
+      if (route == null) {
+        if (_loadRetryCount < _maxRetries) {
+          _loadRetryCount++;
+          debugPrint('Route not available yet, retrying ($_loadRetryCount/$_maxRetries)');
+          // Retry after a short delay
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (mounted) {
+              _loadExistingListData();
+            }
+          });
+        } else {
+          debugPrint('Max retries reached, continuing without edit data');
+          if (mounted) {
+            setState(() {
+              _isLoadingEditData = false;
+            });
+          }
+        }
+        return;
+      }
+
+      final arguments = route.settings.arguments;
+      if (arguments is ShoppingListModel) {
+        final existingList = arguments;
+        if (mounted) {
+          setState(() {
+            _isEditMode = true;
+            _editingListId = existingList.listId;
+            _listNameController.text = existingList.listName;
+            _items.addAll(existingList.items);
+            _isLoadingEditData = false;
+          });
+          debugPrint('Edit mode loaded: ${existingList.listName} with ${existingList.items.length} items');
+        }
+      } else {
+        debugPrint('No edit arguments found, creating new list');
+        if (mounted) {
+          setState(() {
+            _isLoadingEditData = false;
+          });
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error loading existing list data: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Continue without edit mode if there's an error
       if (mounted) {
         setState(() {
-          _isEditMode = true;
-          _editingListId = existingList.listId;
-          _listNameController.text = existingList.listName;
-          _items.addAll(existingList.items);
+          _isEditMode = false;
+          _editingListId = null;
+          _isLoadingEditData = false;
         });
       }
     }
@@ -141,8 +200,15 @@ class _AddListScreenState extends State<AddListScreen> {
         debugPrint('Updating shopping list: $_editingListId');
         
         // Editing existing list
-        // Get current list to preserve item completion status
-        final currentList = await _firebaseService.getShoppingList(_editingListId!);
+        // Get current list to preserve item completion status with timeout
+        final currentList = await _firebaseService.getShoppingList(_editingListId!)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw Exception('Request timed out. Please check your connection and try again.');
+              },
+            );
+        
         if (currentList == null) {
           throw Exception('List not found');
         }
@@ -154,6 +220,11 @@ class _AddListScreenState extends State<AddListScreen> {
           await _firebaseService.updateShoppingListName(
             listId: _editingListId!,
             listName: listName,
+          ).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Update timed out. Please try again.');
+            },
           );
         }
 
@@ -176,10 +247,15 @@ class _AddListScreenState extends State<AddListScreen> {
         }).toList();
 
         debugPrint('Updating ${updatedItems.length} items');
-        // Update all items (handles adds, updates, and deletes)
+        // Update all items (handles adds, updates, and deletes) with timeout
         await _firebaseService.updateShoppingListItems(
           listId: _editingListId!,
           items: updatedItems,
+        ).timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            throw Exception('Update timed out. Please check your connection and try again.');
+          },
         );
         debugPrint('List updated successfully');
 
@@ -261,6 +337,22 @@ class _AddListScreenState extends State<AddListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator while loading edit data
+    if (_isLoadingEditData) {
+      return Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          title: const Text('Loading...'),
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(

@@ -32,7 +32,12 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _checkBeaconStatus();
+    // Delay beacon check to avoid blocking navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkBeaconStatus();
+      }
+    });
   }
 
   Future<void> _checkBeaconStatus() async {
@@ -203,6 +208,7 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'map_screen_fab', // Unique tag to prevent Hero conflicts
         onPressed: () => Navigator.pop(context),
         backgroundColor: Colors.green,
         child: const Icon(Icons.arrow_back),

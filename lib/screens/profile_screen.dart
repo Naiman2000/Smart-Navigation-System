@@ -34,6 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed == true) {
+      if (!mounted) return;
+      
       setState(() {
         _isLoggingOut = true;
       });
@@ -48,10 +50,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }
       } catch (e) {
-        setState(() {
-          _isLoggingOut = false;
-        });
         if (mounted) {
+          setState(() {
+            _isLoggingOut = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to logout: $e')),
           );
@@ -158,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               subtitle: 'Update your personal information',
               onTap: () async {
                 final result = await Navigator.pushNamed(context, '/editProfile');
-                if (result == true) {
+                if (result == true && mounted) {
                   // Refresh the profile screen
                   setState(() {});
                 }
@@ -174,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context,
                   '/notificationPreferences',
                 );
-                if (result == true) {
+                if (result == true && mounted) {
                   // Refresh if preferences were updated
                   setState(() {});
                 }

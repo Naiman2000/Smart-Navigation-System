@@ -6,7 +6,7 @@ import 'firebase_options.dart';
 // Import your screen files
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/add_list_screen.dart';
 import 'screens/shopping_list_screen.dart';
@@ -83,10 +83,83 @@ class SmartNavigationApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       // Start app from the Login Screen
       initialRoute: '/login',
+      // Use custom route generator to disable Hero animations for secondary screens
+      onGenerateRoute: (settings) {
+        Widget? screen;
+        switch (settings.name) {
+          case '/login':
+            screen = const LoginScreen();
+            break;
+          case '/register':
+            screen = const RegisterScreen();
+            break;
+          case '/home':
+            screen = const MainNavigationScreen();
+            break;
+          case '/map':
+            screen = const MapScreen();
+            break;
+          case '/addList':
+            screen = const AddListScreen();
+            break;
+          case '/shoppingList':
+            screen = const ShoppingListScreen();
+            break;
+          case '/profile':
+            screen = const ProfileScreen();
+            break;
+          case '/editProfile':
+            screen = const EditProfileScreen();
+            break;
+          case '/notificationPreferences':
+            screen = const NotificationPreferencesScreen();
+            break;
+          case '/privacySecurity':
+            screen = const PrivacySecurityScreen();
+            break;
+          case '/helpSupport':
+            screen = const HelpSupportScreen();
+            break;
+          default:
+            return null;
+        }
+
+        // Use custom page route without Hero animations for secondary screens
+        final isSecondaryScreen = settings.name != '/login' && 
+                                  settings.name != '/register' && 
+                                  settings.name != '/home';
+        
+        if (isSecondaryScreen) {
+          // Secondary screens: use fade transition without Hero
+          // Create a custom route that doesn't use Hero animations
+          return PageRouteBuilder(
+            settings: settings,
+            pageBuilder: (context, animation, secondaryAnimation) => screen!,
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              // Use FadeTransition without Hero
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 200),
+            maintainState: true,
+            // Disable Hero by using opaque barrier
+            opaque: true,
+          );
+        } else {
+          // Main screens: use default MaterialPageRoute
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (context) => screen!,
+          );
+        }
+      },
+      // Keep routes for backward compatibility, but onGenerateRoute takes precedence
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const MainNavigationScreen(),
         '/map': (context) => const MapScreen(),
         '/addList': (context) => const AddListScreen(),
         '/shoppingList': (context) => const ShoppingListScreen(),

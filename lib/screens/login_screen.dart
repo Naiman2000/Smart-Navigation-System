@@ -71,6 +71,11 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await _firebaseService.signIn(
         email: email,
         password: password,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Login timed out. Please check your connection and try again.');
+        },
       );
 
       if (user != null) {
@@ -212,7 +217,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _sendPasswordResetEmail(String email) async {
     try {
-      await _firebaseService.resetPassword(email);
+      await _firebaseService.resetPassword(email)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw Exception('Password reset request timed out. Please check your connection and try again.');
+            },
+          );
 
       if (mounted) {
         showDialog(
@@ -263,20 +274,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo/Icon with animation
-                  Hero(
-                    tag: 'app_logo',
-                    child: Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingM),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.shopping_cart,
-                        size: 64,
-                        color: AppTheme.primaryColor,
-                      ),
+                  // Logo/Icon (removed Hero to avoid duplicate tag issues)
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.spacingM),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.shopping_cart,
+                      size: 64,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingL),
