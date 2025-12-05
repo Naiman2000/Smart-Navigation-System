@@ -51,6 +51,15 @@ class AppLogo extends StatelessWidget {
           ? ColorFilter.mode(color!, BlendMode.srcIn)
           : null,
       semanticsLabel: 'Grocery Navigator Logo',
+      placeholderBuilder: (context) => SizedBox(
+        width: size,
+        height: size,
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      // Enable caching for better performance
+      cacheColorFilter: true,
     );
 
     if (showBackground) {
