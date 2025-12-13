@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../models/product_model.dart';
 import '../models/shopping_list_model.dart';
+import '../models/beacon_model.dart';
 import 'credentials_service.dart';
 
 class FirebaseService {
@@ -550,6 +552,131 @@ class FirebaseService {
           .toList();
     } catch (e) {
       throw Exception('Failed to get products by aisle: $e');
+    }
+  }
+
+  // ============================================================================
+  // BEACON METHODS
+  // ============================================================================
+
+  /// Create new beacon
+  Future<String> createBeacon(BeaconModel beacon) async {
+    try {
+      await _firestore
+          .collection('beacons')
+          .doc(beacon.beaconId)
+          .set(beacon.toJson());
+      return beacon.beaconId;
+    } catch (e) {
+      throw Exception('Failed to create beacon: $e');
+    }
+  }
+
+  /// Get single beacon by ID
+  Future<BeaconModel?> getBeacon(String beaconId) async {
+    try {
+      final doc = await _firestore.collection('beacons').doc(beaconId).get();
+      if (doc.exists && doc.data() != null) {
+        return BeaconModel.fromJson(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get beacon: $e');
+    }
+  }
+
+  /// Get all beacons
+  Future<List<BeaconModel>> getAllBeacons({bool activeOnly = false}) async {
+    try {
+      Query query = _firestore.collection('beacons');
+      
+      if (activeOnly) {
+        query = query.where('isActive', isEqualTo: true);
+        // Don't use orderBy with where clause to avoid index requirement
+        // We'll sort in memory instead
+      } else {
+        query = query.orderBy('createdAt', descending: false);
+      }
+      
+      final snapshot = await query.get();
+      
+      final beacons = snapshot.docs
+          .map((doc) => BeaconModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+      
+      // Sort in memory if we filtered by activeOnly
+      if (activeOnly) {
+        beacons.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      
+      return beacons;
+    } catch (e) {
+      throw Exception('Failed to get beacons: $e');
+    }
+  }
+
+  /// Update beacon fields
+  Future<void> updateBeacon(
+    String beaconId,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      updates['updatedAt'] = Timestamp.now();
+      await _firestore.collection('beacons').doc(beaconId).update(updates);
+    } catch (e) {
+      throw Exception('Failed to update beacon: $e');
+    }
+  }
+
+  /// Delete beacon
+  Future<void> deleteBeacon(String beaconId) async {
+    try {
+      await _firestore.collection('beacons').doc(beaconId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete beacon: $e');
+    }
+  }
+
+  /// Get real-time stream of beacons
+  Stream<List<BeaconModel>> getBeaconsStream({bool activeOnly = false}) {
+    try {
+      Query query = _firestore.collection('beacons');
+      
+      if (activeOnly) {
+        query = query.where('isActive', isEqualTo: true);
+        // Don't use orderBy with where clause to avoid index requirement
+        // We'll sort in memory instead
+      } else {
+        query = query.orderBy('createdAt', descending: false);
+      }
+      
+      return query.snapshots().map((snapshot) {
+        final beacons = snapshot.docs
+            .map((doc) => BeaconModel.fromJson(doc.data() as Map<String, dynamic>))
+            .toList();
+        
+        // Sort in memory if we filtered by activeOnly
+        if (activeOnly) {
+          beacons.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        }
+        
+        return beacons;
+      });
+    } catch (e) {
+      throw Exception('Failed to get beacons stream: $e');
+    }
+  }
+
+  /// Update beacon last seen timestamp
+  Future<void> updateBeaconLastSeen(String beaconId) async {
+    try {
+      await _firestore.collection('beacons').doc(beaconId).update({
+        'lastSeen': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      // Silently fail - this is not critical
+      debugPrint('Failed to update beacon last seen: $e');
     }
   }
 

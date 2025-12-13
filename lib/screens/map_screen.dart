@@ -1,6 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/beacon_service.dart';
+import '../services/navigation_service.dart';
+import '../services/firebase_service.dart';
+import '../services/beacon_config_service.dart';
 import '../models/shopping_list_model.dart';
+import '../models/product_model.dart';
+import '../models/store_layout_model.dart';
+import '../widgets/store_map_widget.dart';
+import '../theme/app_theme.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -11,23 +19,21 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _beaconService = BeaconService();
+  final _navigationService = NavigationService();
+  final _firebaseService = FirebaseService();
+  final _beaconConfigService = BeaconConfigService();
 
   bool _isScanning = false;
   String _connectionStatus = 'Not Connected';
   int _beaconsDetected = 0;
-  List<Map<String, dynamic>> _beacons = [];
-
-  // Sample store layout data
-  final List<Map<String, dynamic>> _storeLayout = [
-    {'section': 'Dairy & Eggs', 'aisle': 'A1', 'icon': Icons.local_drink},
-    {'section': 'Meat & Seafood', 'aisle': 'A2', 'icon': Icons.set_meal},
-    {'section': 'Fruits & Vegetables', 'aisle': 'A3', 'icon': Icons.apple},
-    {'section': 'Bakery', 'aisle': 'A4', 'icon': Icons.cake},
-    {'section': 'Cereals', 'aisle': 'B1', 'icon': Icons.breakfast_dining},
-    {'section': 'Snacks', 'aisle': 'B2', 'icon': Icons.cookie},
-    {'section': 'Beverages', 'aisle': 'B3', 'icon': Icons.local_cafe},
-    {'section': 'Frozen Foods', 'aisle': 'C1', 'icon': Icons.ac_unit},
-  ];
+  List<BeaconData> _detectedBeacons = [];
+  StreamSubscription<List<BeaconData>>? _beaconSubscription;
+  double _positionAccuracy = 0.0;
+  String _positionStatus = 'Waiting for beacons...';
+  
+  Point? _userPosition;
+  List<ProductModel> _products = [];
+  bool _isLoadingProducts = false;
 
   @override
   void initState() {
@@ -35,9 +41,126 @@ class _MapScreenState extends State<MapScreen> {
     // Delay beacon check to avoid blocking navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _initializeBeaconSystem();
         _checkBeaconStatus();
+        _initializeUserPosition();
+        _loadProductsFromShoppingList();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _beaconSubscription?.cancel();
+    _beaconService.stopScanning();
+    super.dispose();
+  }
+
+  Future<void> _initializeBeaconSystem() async {
+    // Initialize beacon cache
+    await _beaconConfigService.initializeCache();
+    
+    // Subscribe to beacon stream for real-time updates
+    _beaconSubscription = _beaconService.beaconStream.listen((beacons) {
+      if (mounted) {
+        setState(() {
+          _detectedBeacons = beacons;
+          _beaconsDetected = beacons.length;
+        });
+        _updateUserPosition(beacons);
+      }
+    });
+  }
+
+  Future<void> _updateUserPosition(List<BeaconData> beacons) async {
+    if (beacons.length < 3) {
+      setState(() {
+        _positionStatus = 'Need 3+ beacons (${beacons.length} detected)';
+        _positionAccuracy = 0.0;
+      });
+      return;
+    }
+
+    try {
+      final position = await _navigationService.calculatePosition(beacons);
+      
+      if (position != null) {
+        final accuracy = _navigationService.calculatePositionAccuracy(beacons);
+        setState(() {
+          _userPosition = Point(x: position.x, y: position.y);
+          _positionAccuracy = accuracy;
+          _positionStatus = 'Positioning active';
+        });
+      } else {
+        setState(() {
+          _positionStatus = 'Position calculation failed';
+          _positionAccuracy = 0.0;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _positionStatus = 'Error: $e';
+        _positionAccuracy = 0.0;
+      });
+    }
+  }
+
+  void _initializeUserPosition() {
+    // Get user position from navigation service
+    final position = _navigationService.currentPosition;
+    if (position != null) {
+      setState(() {
+        _userPosition = Point(x: position.x, y: position.y);
+      });
+    } else {
+      // Default position at entry point
+      setState(() {
+        _userPosition = const Point(x: 25.0, y: 0.0);
+      });
+    }
+  }
+
+  Future<void> _loadProductsFromShoppingList() async {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final shoppingList = arguments as ShoppingListModel?;
+    
+    if (shoppingList == null || shoppingList.items.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingProducts = true;
+    });
+
+    try {
+      final productIds = shoppingList.items
+          .where((item) => item.productId.isNotEmpty)
+          .map((item) => item.productId)
+          .toSet()
+          .toList();
+
+      final products = <ProductModel>[];
+      for (final productId in productIds) {
+        final product = await _firebaseService.getProduct(productId);
+        if (product != null) {
+          products.add(product);
+        }
+      }
+
+      setState(() {
+        _products = products;
+        _isLoadingProducts = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingProducts = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading products: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _checkBeaconStatus() async {
@@ -64,22 +187,13 @@ class _MapScreenState extends State<MapScreen> {
       _isScanning = true;
       _connectionStatus = 'Scanning...';
       _beaconsDetected = 0;
+      _detectedBeacons = [];
     });
 
     try {
       await _beaconService.startScanning();
-
-      // Simulate beacon detection for demo
       setState(() {
-        _beaconsDetected = 5; // Simulated
-        _connectionStatus = 'Connected';
-        _beacons = [
-          {'name': 'Beacon A1', 'rssi': -45, 'distance': '2.5m'},
-          {'name': 'Beacon A2', 'rssi': -52, 'distance': '3.2m'},
-          {'name': 'Beacon B1', 'rssi': -58, 'distance': '4.1m'},
-          {'name': 'Beacon C1', 'rssi': -62, 'distance': '5.0m'},
-          {'name': 'Beacon D1', 'rssi': -68, 'distance': '6.0m'},
-        ];
+        _connectionStatus = 'Scanning...';
       });
     } catch (e) {
       setState(() {
@@ -94,6 +208,8 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _isScanning = false;
       _connectionStatus = 'Stopped';
+      _beaconsDetected = 0;
+      _detectedBeacons = [];
     });
   }
 
@@ -111,6 +227,13 @@ class _MapScreenState extends State<MapScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, '/beaconConfig');
+            },
+            tooltip: 'Beacon Configuration',
+          ),
+          IconButton(
             icon: Icon(_isScanning ? Icons.stop : Icons.play_arrow),
             onPressed: _isScanning ? _stopScanning : _startScanning,
             tooltip: _isScanning ? 'Stop Scanning' : 'Start Scanning',
@@ -122,36 +245,67 @@ class _MapScreenState extends State<MapScreen> {
           // Connection Status Card
           Container(
             width: double.infinity,
-            color: Colors.green.shade700,
-            padding: const EdgeInsets.all(16),
-            child: Column(
+            color: AppTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingM,
+              vertical: AppTheme.spacingS + 2,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _isScanning ? Icons.bluetooth_connected : Icons.bluetooth,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _connectionStatus,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  _isScanning ? Icons.bluetooth_connected : Icons.bluetooth,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Text(
+                  _connectionStatus,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
                 if (_beaconsDetected > 0) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '$_beaconsDetected Beacons Detected',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
+                  const SizedBox(width: AppTheme.spacingM),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingS,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_beaconsDetected Beacons',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+                if (_positionAccuracy > 0) ...[
+                  const SizedBox(width: AppTheme.spacingM),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingS,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '±${_positionAccuracy.toStringAsFixed(1)}m',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -216,43 +370,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildStoreSectionCard(Map<String, dynamic> section) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Navigating to ${section['section']}...')),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(section['icon'] as IconData, size: 32, color: Colors.green),
-              const SizedBox(height: 8),
-              Text(
-                section['section'],
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                section['aisle'],
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildBeaconInfo(String name, int rssi, String distance) {
     Color rssiColor = rssi > -50
@@ -322,61 +439,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildStoreLayoutSection() {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.grey.shade100,
-            child: Row(
-              children: [
-                const Icon(Icons.map, color: Colors.green),
-                const SizedBox(width: 8),
-                const Text(
-                  'Store Layout',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'You are here',
-                    style: TextStyle(
-                      color: Colors.green.shade700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
-              ),
-              itemCount: _storeLayout.length,
-              itemBuilder: (context, index) {
-                final item = _storeLayout[index];
-                return _buildStoreSectionCard(item);
-              },
-            ),
-          ),
-        ],
-      ),
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final shoppingList = arguments as ShoppingListModel?;
+
+    if (_isLoadingProducts) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    return StoreMapWidget(
+      userPosition: _userPosition,
+      products: _products,
+      shoppingList: shoppingList,
+      showRoute: true,
     );
   }
 
@@ -424,6 +500,17 @@ class _MapScreenState extends State<MapScreen> {
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    if (_products.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_products.length} products on map',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -449,26 +536,44 @@ class _MapScreenState extends State<MapScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (_beacons.isEmpty)
+                  if (_detectedBeacons.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Center(
-                        child: Text(
-                          'Start scanning to detect beacons',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
+                        child: Column(
+                          children: [
+                            Text(
+                              _isScanning
+                                  ? 'Scanning for beacons...'
+                                  : 'Start scanning to detect beacons',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (_positionStatus.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _positionStatus,
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     )
                   else
-                    ..._beacons.map(
+                    ..._detectedBeacons.map(
                       (beacon) => _buildBeaconInfo(
-                        beacon['name'],
-                        beacon['rssi'],
-                        beacon['distance'],
+                        beacon.name,
+                        beacon.rssi,
+                        '${beacon.distance.toStringAsFixed(1)}m',
                       ),
                     ),
                 ],

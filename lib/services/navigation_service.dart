@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'beacon_service.dart';
+import 'beacon_config_service.dart';
 import '../models/product_model.dart';
 
 class NavigationService {
@@ -17,12 +18,15 @@ class NavigationService {
   Position? _currentPosition;
   Position? get currentPosition => _currentPosition;
 
+  // Beacon config service for getting real beacon positions
+  final BeaconConfigService _beaconConfigService = BeaconConfigService();
+
   // ============================================================================
   // POSITION CALCULATION (TRILATERATION)
   // ============================================================================
 
   /// Calculate user position using trilateration from 3+ beacons
-  Position? calculatePosition(List<BeaconData> beacons) {
+  Future<Position?> calculatePosition(List<BeaconData> beacons) async {
     // Need at least 3 beacons for trilateration
     if (beacons.length < 3) {
       debugPrint('Need at least 3 beacons for position calculation');
@@ -32,7 +36,6 @@ class NavigationService {
     // Filter beacons with valid distances
     final validBeacons = beacons
         .where((b) => b.distance > 0 && b.distance < 50)
-        .take(3)
         .toList();
 
     if (validBeacons.length < 3) {
@@ -40,32 +43,62 @@ class NavigationService {
     }
 
     try {
-      // For demo purposes, use simplified beacon positions
-      // In production, these would come from beacon database
+      // Get real beacon positions from configuration service
+      final beaconPositions = await _beaconConfigService.getBeaconPositions(
+        validBeacons.map((b) => b.id).toList(),
+      );
+
+      if (beaconPositions.length < 3) {
+        debugPrint('Not enough configured beacons found (${beaconPositions.length}/3)');
+        return null;
+      }
+
+      // Use the 3 closest beacons with valid positions
+      final sortedBeacons = validBeacons
+          .where((b) => beaconPositions.containsKey(b.id))
+          .toList()
+        ..sort((a, b) => a.distance.compareTo(b.distance));
+
+      if (sortedBeacons.length < 3) {
+        return null;
+      }
+
+      final top3 = sortedBeacons.take(3).toList();
+      final pos1 = beaconPositions[top3[0].id]!;
+      final pos2 = beaconPositions[top3[1].id]!;
+      final pos3 = beaconPositions[top3[2].id]!;
+
       final beacon1 = BeaconPosition(
-        id: validBeacons[0].id,
-        x: 10.0,
-        y: 10.0,
-        distance: validBeacons[0].distance,
+        id: top3[0].id,
+        x: pos1.x,
+        y: pos1.y,
+        distance: top3[0].distance,
       );
 
       final beacon2 = BeaconPosition(
-        id: validBeacons[1].id,
-        x: 40.0,
-        y: 10.0,
-        distance: validBeacons[1].distance,
+        id: top3[1].id,
+        x: pos2.x,
+        y: pos2.y,
+        distance: top3[1].distance,
       );
 
       final beacon3 = BeaconPosition(
-        id: validBeacons[2].id,
-        x: 25.0,
-        y: 25.0,
-        distance: validBeacons[2].distance,
+        id: top3[2].id,
+        x: pos3.x,
+        y: pos3.y,
+        distance: top3[2].distance,
       );
 
       final position = _trilaterate(beacon1, beacon2, beacon3);
-      _currentPosition = position;
-      return position;
+      
+      // Validate position is within store bounds
+      if (isValidPosition(position)) {
+        _currentPosition = position;
+        return position;
+      } else {
+        debugPrint('Calculated position is outside store bounds: $position');
+        return null;
+      }
     } catch (e) {
       debugPrint('Error calculating position: $e');
       return null;

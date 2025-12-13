@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'beacon_config_service.dart';
 
 class BeaconService {
   // Singleton pattern
@@ -13,21 +14,39 @@ class BeaconService {
   final StreamController<List<BeaconData>> _beaconController =
       StreamController<List<BeaconData>>.broadcast();
 
+  // Stream controller for discovery mode (all BLE devices)
+  final StreamController<List<DiscoveredDevice>> _discoveryController =
+      StreamController<List<DiscoveredDevice>>.broadcast();
+
   // List to store detected beacons
   final List<BeaconData> _detectedBeacons = [];
 
+  // List to store discovered devices (for pairing)
+  final List<DiscoveredDevice> _discoveredDevices = [];
+
   // Scanning state
   bool _isScanning = false;
+  bool _isDiscoveryMode = false;
 
   // RSSI readings buffer for smoothing
   final Map<String, List<int>> _rssiBuffer = {};
   static const int _rssiBufferSize = 5;
 
-  // Stream of detected beacons
+  // Beacon config service for checking configured beacons
+  final BeaconConfigService _beaconConfigService = BeaconConfigService();
+  Set<String> _configuredBeaconIds = {};
+
+  // Stream of detected beacons (configured beacons only)
   Stream<List<BeaconData>> get beaconStream => _beaconController.stream;
+
+  // Stream of discovered devices (for pairing screen)
+  Stream<List<DiscoveredDevice>> get discoveryStream => _discoveryController.stream;
 
   // Check if currently scanning
   bool get isScanning => _isScanning;
+
+  // Check if in discovery mode
+  bool get isDiscoveryMode => _isDiscoveryMode;
 
   // ============================================================================
   // INITIALIZATION AND PERMISSIONS
@@ -59,7 +78,7 @@ class BeaconService {
   // SCANNING METHODS
   // ============================================================================
 
-  /// Start scanning for beacons
+  /// Start scanning for beacons (configured beacons only)
   Future<void> startScanning() async {
     if (_isScanning) {
       debugPrint('Already scanning');
@@ -73,6 +92,9 @@ class BeaconService {
         throw Exception('Failed to initialize Bluetooth');
       }
 
+      // Load configured beacon IDs
+      await _loadConfiguredBeaconIds();
+
       _isScanning = true;
       _detectedBeacons.clear();
 
@@ -84,7 +106,11 @@ class BeaconService {
 
       // Listen to scan results
       FlutterBluePlus.scanResults.listen((results) {
-        _processScanResults(results);
+        if (_isDiscoveryMode) {
+          _processDiscoveryResults(results);
+        } else {
+          _processScanResults(results);
+        }
       });
 
       // Listen for scan state
@@ -109,12 +135,102 @@ class BeaconService {
     }
   }
 
+  /// Start discovery mode (shows all BLE devices for pairing)
+  Future<void> startDiscoveryMode() async {
+    if (_isScanning && !_isDiscoveryMode) {
+      await stopScanning();
+    }
+
+    if (_isDiscoveryMode) {
+      debugPrint('Already in discovery mode');
+      return;
+    }
+
+    try {
+      // Initialize Bluetooth
+      final initialized = await initializeBluetooth();
+      if (!initialized) {
+        throw Exception('Failed to initialize Bluetooth');
+      }
+
+      // Request permissions if needed (flutter_blue_plus handles this, but we ensure it's done)
+      // The package will automatically request permissions when startScan is called
+      
+      // Load configured beacon IDs to filter them out
+      await _loadConfiguredBeaconIds();
+
+      _isDiscoveryMode = true;
+      _isScanning = true;
+      _discoveredDevices.clear();
+
+      // Start scanning - flutter_blue_plus will request permissions automatically
+      try {
+        await FlutterBluePlus.startScan(
+          timeout: const Duration(seconds: 4),
+          androidUsesFineLocation: true,
+        );
+      } catch (e) {
+        // Re-throw with more context if it's a permission error
+        if (e.toString().contains('BLUETOOTH_SCAN') || 
+            e.toString().contains('Permission')) {
+          throw Exception(
+            'Bluetooth permission required. Please grant Bluetooth and Location permissions in app settings.'
+          );
+        }
+        rethrow;
+      }
+
+      // Listen to scan results
+      FlutterBluePlus.scanResults.listen((results) {
+        _processDiscoveryResults(results);
+      });
+
+      // Listen for scan state - when scan completes, stop discovery mode
+      FlutterBluePlus.isScanning.listen((scanning) {
+        if (!scanning && _isDiscoveryMode) {
+          // Scan completed, stop discovery mode automatically
+          debugPrint('Discovery scan completed');
+          _isDiscoveryMode = false;
+          _isScanning = false;
+        }
+      });
+
+      debugPrint('Discovery mode started');
+    } catch (e) {
+      _isDiscoveryMode = false;
+      _isScanning = false;
+      throw Exception('Failed to start discovery mode: $e');
+    }
+  }
+
+  /// Stop discovery mode
+  Future<void> stopDiscoveryMode() async {
+    _isDiscoveryMode = false;
+    _discoveredDevices.clear();
+    await stopScanning();
+    debugPrint('Discovery mode stopped');
+  }
+
+  /// Load configured beacon IDs from config service
+  Future<void> _loadConfiguredBeaconIds() async {
+    try {
+      final beacons = await _beaconConfigService.getAllBeacons(activeOnly: true);
+      _configuredBeaconIds = beacons.map((b) => b.beaconId).toSet();
+      debugPrint('Loaded ${_configuredBeaconIds.length} configured beacon IDs');
+    } catch (e) {
+      debugPrint('Failed to load configured beacons: $e');
+      _configuredBeaconIds.clear();
+    }
+  }
+
   /// Stop scanning for beacons
   Future<void> stopScanning() async {
     try {
       await FlutterBluePlus.stopScan();
       _isScanning = false;
+      _isDiscoveryMode = false;
       _detectedBeacons.clear();
+      _discoveredDevices.clear();
       _rssiBuffer.clear();
       debugPrint('Beacon scanning stopped');
     } catch (e) {
@@ -122,56 +238,112 @@ class BeaconService {
     }
   }
 
-  /// Process scan results
+  /// Process scan results (for configured beacons only)
   void _processScanResults(List<ScanResult> results) {
     _detectedBeacons.clear();
 
     for (final result in results) {
-      // Filter for beacon devices (adjust filter as needed)
-      if (_isBeaconDevice(result)) {
-        final smoothedRssi = _smoothRSSI(result.device.remoteId.str, result.rssi);
-        final distance = calculateDistance(smoothedRssi, result.advertisementData.txPowerLevel ?? -59);
+      final deviceId = result.device.remoteId.str;
+      
+      // Only process if it's a configured beacon
+      if (_isBeaconDevice(result) && _configuredBeaconIds.contains(deviceId)) {
+        // Get beacon config for txPower
+        _beaconConfigService.getBeacon(deviceId).then((beacon) {
+          final txPower = beacon?.txPower ?? -59;
+          final smoothedRssi = _smoothRSSI(deviceId, result.rssi);
+          final distance = calculateDistance(smoothedRssi, txPower);
 
-        final beacon = BeaconData(
-          id: result.device.remoteId.str,
-          name: result.device.platformName.isNotEmpty
-              ? result.device.platformName
-              : 'Unknown',
-          rssi: smoothedRssi,
-          distance: distance,
+          final beaconData = BeaconData(
+            id: deviceId,
+            name: beacon?.name ?? 
+                (result.device.platformName.isNotEmpty
+                    ? result.device.platformName
+                    : 'Unknown'),
+            rssi: smoothedRssi,
+            distance: distance,
+            timestamp: DateTime.now(),
+          );
+
+          _detectedBeacons.add(beaconData);
+          
+          // Update last seen timestamp
+          _beaconConfigService.updateBeaconLastSeen(deviceId);
+
+          // Sort and emit
+          _detectedBeacons.sort((a, b) => b.rssi.compareTo(a.rssi));
+          _beaconController.add(List.from(_detectedBeacons));
+        });
+      }
+    }
+  }
+
+  /// Process discovery results (all BLE devices for pairing)
+  void _processDiscoveryResults(List<ScanResult> results) {
+    final deviceMap = <String, DiscoveredDevice>{};
+
+    for (final result in results) {
+      final deviceId = result.device.remoteId.str;
+      final deviceName = result.device.platformName.isNotEmpty
+          ? result.device.platformName
+          : 'Unknown Device';
+
+      // Skip already configured beacons
+      if (_configuredBeaconIds.contains(deviceId)) {
+        continue;
+      }
+
+      // Only show devices with reasonable signal strength
+      if (result.rssi > -90) {
+        deviceMap[deviceId] = DiscoveredDevice(
+          id: deviceId,
+          name: deviceName,
+          macAddress: deviceId,
+          rssi: result.rssi,
           timestamp: DateTime.now(),
+          isConfigured: false,
         );
-
-        _detectedBeacons.add(beacon);
       }
     }
 
-    // Sort by signal strength (closest first)
-    _detectedBeacons.sort((a, b) => b.rssi.compareTo(a.rssi));
+    // Update discovered devices list
+    _discoveredDevices.clear();
+    _discoveredDevices.addAll(deviceMap.values);
+    _discoveredDevices.sort((a, b) => b.rssi.compareTo(a.rssi));
 
-    // Emit updated beacon list
-    _beaconController.add(List.from(_detectedBeacons));
+    // Emit updated discovery list
+    _discoveryController.add(List.from(_discoveredDevices));
   }
 
   /// Check if device is a beacon
+  /// In normal mode: checks if device is in configured beacons list
+  /// In discovery mode: accepts all BLE devices with reasonable signal
   bool _isBeaconDevice(ScanResult result) {
-    // Filter logic - adjust based on your beacon specifications
-    // Option 1: Filter by device name
+    final deviceId = result.device.remoteId.str;
+
+    // If in discovery mode, accept all devices with reasonable signal
+    if (_isDiscoveryMode) {
+      return result.rssi > -90;
+    }
+
+    // In normal mode, check if device is configured
+    if (_configuredBeaconIds.contains(deviceId)) {
+      return true;
+    }
+
+    // Also check by device name patterns (for backward compatibility)
     final name = result.device.platformName.toLowerCase();
     if (name.contains('beacon') || name.contains('ibeacon')) {
       return true;
     }
 
-    // Option 2: Filter by manufacturer data (for iBeacon)
+    // Check by manufacturer data (for iBeacon)
     final manufacturerData = result.advertisementData.manufacturerData;
     if (manufacturerData.containsKey(0x004C)) {
       // Apple's company identifier for iBeacon
       return true;
     }
 
-    // Option 3: Accept all BLE devices (for testing)
-    // Remove or adjust this in production
-    return result.rssi > -90; // Only devices with reasonable signal strength
+    return false;
   }
 
   // ============================================================================
@@ -268,10 +440,16 @@ class BeaconService {
   // CLEANUP
   // ============================================================================
 
+  /// Refresh configured beacon list (call after pairing new beacon)
+  Future<void> refreshConfiguredBeacons() async {
+    await _loadConfiguredBeaconIds();
+  }
+
   /// Dispose resources
   void dispose() {
     stopScanning();
     _beaconController.close();
+    _discoveryController.close();
   }
 }
 
@@ -369,6 +547,41 @@ extension ProximityExtension on Proximity {
       case Proximity.unknown:
         return 'Unknown';
     }
+  }
+}
+
+// ============================================================================
+// DISCOVERED DEVICE MODEL (for pairing screen)
+// ============================================================================
+
+class DiscoveredDevice {
+  final String id;
+  final String name;
+  final String macAddress;
+  final int rssi;
+  final DateTime timestamp;
+  final bool isConfigured;
+
+  DiscoveredDevice({
+    required this.id,
+    required this.name,
+    required this.macAddress,
+    required this.rssi,
+    required this.timestamp,
+    this.isConfigured = false,
+  });
+
+  SignalStrength get signalStrength {
+    if (rssi >= -50) return SignalStrength.excellent;
+    if (rssi >= -60) return SignalStrength.good;
+    if (rssi >= -70) return SignalStrength.fair;
+    if (rssi >= -80) return SignalStrength.poor;
+    return SignalStrength.veryPoor;
+  }
+
+  @override
+  String toString() {
+    return 'DiscoveredDevice(id: $id, name: $name, macAddress: $macAddress, rssi: $rssi)';
   }
 }
 

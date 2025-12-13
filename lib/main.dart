@@ -15,6 +15,8 @@ import 'screens/edit_profile_screen.dart';
 import 'screens/notification_preferences_screen.dart';
 import 'screens/privacy_security_screen.dart';
 import 'screens/help_support_screen.dart';
+import 'screens/beacon_pairing_screen.dart';
+import 'screens/beacon_config_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -120,6 +122,12 @@ class SmartNavigationApp extends StatelessWidget {
           case '/helpSupport':
             screen = const HelpSupportScreen();
             break;
+          case '/beaconPairing':
+            screen = const BeaconPairingScreen();
+            break;
+          case '/beaconConfig':
+            screen = const BeaconConfigScreen();
+            break;
           default:
             return null;
         }
@@ -169,6 +177,8 @@ class SmartNavigationApp extends StatelessWidget {
             const NotificationPreferencesScreen(),
         '/privacySecurity': (context) => const PrivacySecurityScreen(),
         '/helpSupport': (context) => const HelpSupportScreen(),
+        '/beaconPairing': (context) => const BeaconPairingScreen(),
+        '/beaconConfig': (context) => const BeaconConfigScreen(),
       },
     );
   }
