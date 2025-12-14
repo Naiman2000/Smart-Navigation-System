@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
 import '../services/firebase_service.dart';
-import 'main_navigation_screen.dart' show MainNavigationExtension;
 
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key});
@@ -37,12 +36,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<void> _loadShoppingLists() async {
     if (!mounted) return;
-    
+
     // Cancel existing subscription if any
     await _listsSubscription?.cancel();
-    
+
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -112,21 +111,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<void> _editList(ShoppingListModel list) async {
     if (!mounted) return;
-    
+
     try {
       // Navigate to add list screen with existing list data for editing
       // Use unawaited to prevent blocking
-      final result = await Navigator.pushNamed(
-        context,
-        '/addList',
-        arguments: list,
-      ).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          throw Exception('Navigation timed out');
-        },
-      );
-      
+      final result =
+          await Navigator.pushNamed(
+            context,
+            '/addList',
+            arguments: list,
+          ).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              throw Exception('Navigation timed out');
+            },
+          );
+
       // Refresh lists after editing
       if (result == true && mounted) {
         _loadShoppingLists();
@@ -146,7 +146,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<void> _deleteList(String listId) async {
     if (!mounted) return;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -169,12 +169,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
 
     if (confirmed != true) return;
-    
+
     try {
       // Proceed with deletion regardless of mounted state
       // Firebase operations don't require the widget to be mounted
       await _firebaseService.deleteShoppingList(listId);
-      
+
       // Only check mounted before using context for UI updates
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -249,7 +249,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       floatingActionButton: _shoppingLists.isEmpty
           ? null
           : FloatingActionButton.extended(
-              heroTag: 'shopping_list_fab', // Unique tag to prevent Hero conflicts
+              heroTag:
+                  'shopping_list_fab', // Unique tag to prevent Hero conflicts
               onPressed: () => Navigator.pushNamed(context, '/addList'),
               backgroundColor: Colors.green,
               icon: const Icon(Icons.add),
@@ -284,10 +285,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             const SizedBox(height: 12),
             Text(
               'Start by creating your first grocery list',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
@@ -309,10 +307,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               icon: const Icon(Icons.add, size: 24),
               label: const Text(
                 'Create New List',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -345,17 +340,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-              onTap: () {
-                // Switch to Map tab and pass the list
-                final mainNav = context.getMainNavigationState();
-                if (mainNav != null) {
-                  mainNav.switchToTab(1); // Switch to Map tab
-                  // Note: To pass arguments, we'd need a more sophisticated approach
-                  // For now, just switch to map tab
-                } else {
-                  Navigator.pushNamed(context, '/map', arguments: list);
-                }
-              },
+        onTap: () {
+          // Navigate to map screen with the shopping list
+          Navigator.pushNamed(context, '/map', arguments: list);
+        },
         borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

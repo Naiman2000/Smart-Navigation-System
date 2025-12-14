@@ -14,6 +14,7 @@ class StoreMapWidget extends StatefulWidget {
   final ShoppingListModel? shoppingList;
   final bool showRoute;
   final Function(Point)? onMapTap;
+  final ProductModel? nextItem; // Next item to navigate to
 
   const StoreMapWidget({
     super.key,
@@ -22,6 +23,7 @@ class StoreMapWidget extends StatefulWidget {
     this.shoppingList,
     this.showRoute = true,
     this.onMapTap,
+    this.nextItem,
   });
 
   @override
@@ -53,118 +55,33 @@ class _StoreMapWidgetState extends State<StoreMapWidget>
   @override
   Widget build(BuildContext context) {
     final layout = StoreLayoutConfig.getDefaultLayout();
-    
+
     return Container(
       color: Colors.white,
-      child: Column(
-        children: [
-          // Map Controls
-          _buildMapControls(),
-          // Map Area
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return InteractiveViewer(
-                  transformationController: _transformationController,
-                  minScale: 0.5,
-                  maxScale: 3.0,
-                  boundaryMargin: const EdgeInsets.all(20),
-                  child: SizedBox(
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    child: CustomPaint(
-                      painter: StoreMapPainter(
-                        layout: layout,
-                        userPosition: widget.userPosition,
-                        products: widget.products ?? [],
-                        shoppingList: widget.shoppingList,
-                        showRoute: widget.showRoute,
-                        pulseAnimation: _pulseController,
-                      ),
-                    ),
-                  ),
-                );
-              },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: 0.5,
+            maxScale: 3.0,
+            boundaryMargin: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              child: CustomPaint(
+                painter: StoreMapPainter(
+                  layout: layout,
+                  userPosition: widget.userPosition,
+                  products: widget.products ?? [],
+                  shoppingList: widget.shoppingList,
+                  showRoute: widget.showRoute,
+                  pulseAnimation: _pulseController,
+                  nextItem: widget.nextItem,
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMapControls() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.map, color: AppTheme.primaryColor, size: 24),
-          const SizedBox(width: AppTheme.spacingS),
-          const Text(
-            'Store Map',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const Spacer(),
-          // Zoom controls
-          IconButton(
-            icon: const Icon(Icons.zoom_in, size: 22),
-            color: AppTheme.textSecondary,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-            ),
-            onPressed: () {
-              _transformationController.value = Matrix4.identity()
-                ..scale(1.2)
-                ..translate(
-                  -MediaQuery.of(context).size.width * 0.1,
-                  -MediaQuery.of(context).size.height * 0.1,
-                );
-            },
-            tooltip: 'Zoom in',
-          ),
-          IconButton(
-            icon: const Icon(Icons.zoom_out, size: 22),
-            color: AppTheme.textSecondary,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-            ),
-            onPressed: () {
-              _transformationController.value = Matrix4.identity()
-                ..scale(0.8)
-                ..translate(
-                  MediaQuery.of(context).size.width * 0.1,
-                  MediaQuery.of(context).size.height * 0.1,
-                );
-            },
-            tooltip: 'Zoom out',
-          ),
-          IconButton(
-            icon: const Icon(Icons.center_focus_strong, size: 22),
-            color: AppTheme.textSecondary,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-            ),
-            onPressed: () {
-              _transformationController.value = Matrix4.identity();
-            },
-            tooltip: 'Reset view',
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -178,6 +95,7 @@ class StoreMapPainter extends CustomPainter {
   final ShoppingListModel? shoppingList;
   final bool showRoute;
   final Animation<double> pulseAnimation;
+  final ProductModel? nextItem;
 
   StoreMapPainter({
     required this.layout,
@@ -186,6 +104,7 @@ class StoreMapPainter extends CustomPainter {
     this.shoppingList,
     this.showRoute = true,
     required this.pulseAnimation,
+    this.nextItem,
   }) : super(repaint: pulseAnimation);
 
   @override
@@ -194,7 +113,7 @@ class StoreMapPainter extends CustomPainter {
     final scaleX = size.width / layout.width;
     final scaleY = size.height / layout.height;
     final scale = math.min(scaleX, scaleY); // Maintain aspect ratio
-    
+
     // Center the map within the available space
     final scaledWidth = layout.width * scale;
     final scaledHeight = layout.height * scale;
@@ -204,10 +123,7 @@ class StoreMapPainter extends CustomPainter {
 
     // Helper function to convert store coordinates to screen coordinates
     Offset toScreen(Point point) {
-      return Offset(
-        offset.dx + point.x * scale,
-        offset.dy + point.y * scale,
-      );
+      return Offset(offset.dx + point.x * scale, offset.dy + point.y * scale);
     }
 
     // Helper function to convert store rect to screen rect
@@ -258,7 +174,7 @@ class StoreMapPainter extends CustomPainter {
         text: TextSpan(
           text: aisle.id,
           style: TextStyle(
-            fontSize: math.max(1.5 * scale, 10.0).toDouble(),
+            fontSize: math.min(math.max(0.8 * scale, 8.0), 10.0).toDouble(),
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -266,7 +182,7 @@ class StoreMapPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      
+
       // Draw background rectangle for label
       final labelBgRect = Rect.fromLTWH(
         aisleRect.center.dx - textPainter.width / 2 - 4,
@@ -281,28 +197,37 @@ class StoreMapPainter extends CustomPainter {
         RRect.fromRectAndRadius(labelBgRect, const Radius.circular(4)),
         labelBgPaint,
       );
-      
+
       textPainter.paint(
         canvas,
-        Offset(
-          aisleRect.center.dx - textPainter.width / 2,
-          aisleRect.top + 4,
-        ),
+        Offset(aisleRect.center.dx - textPainter.width / 2, aisleRect.top + 4),
       );
     }
 
-    // Draw navigation route if enabled
-    if (showRoute && userPosition != null && products.isNotEmpty) {
-      _drawNavigationRoute(canvas, toScreen, scale);
+    // Draw navigation route if enabled (only to next item if specified)
+    if (showRoute && userPosition != null) {
+      if (nextItem != null) {
+        _drawRouteToNextItem(canvas, toScreen, scale, userPosition!, nextItem!);
+      } else if (products.isNotEmpty) {
+        _drawNavigationRoute(canvas, toScreen, scale, layout);
+      }
     }
 
-    // Draw product markers
+    // Draw product markers (highlight next item if specified)
     for (final product in products) {
       final productPoint = Point(
         x: product.location.coordinates.x,
         y: product.location.coordinates.y,
       );
-      _drawProductMarker(canvas, toScreen(productPoint), product, scale);
+      final isNextItem =
+          nextItem != null && nextItem!.productId == product.productId;
+      _drawProductMarker(
+        canvas,
+        toScreen(productPoint),
+        product,
+        scale,
+        isNextItem: isNextItem,
+      );
     }
 
     // Draw user position
@@ -331,7 +256,7 @@ class StoreMapPainter extends CustomPainter {
       text: TextSpan(
         text: 'CHECKOUT',
         style: TextStyle(
-          fontSize: math.max(1.2 * scale, 10.0).toDouble(),
+          fontSize: math.min(math.max(0.7 * scale, 8.0), 10.0).toDouble(),
           color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
@@ -339,7 +264,7 @@ class StoreMapPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     checkoutText.layout();
-    
+
     // Draw semi-transparent background for better text visibility
     final textBgRect = Rect.fromLTWH(
       checkoutRect.center.dx - checkoutText.width / 2 - 6,
@@ -354,7 +279,7 @@ class StoreMapPainter extends CustomPainter {
       RRect.fromRectAndRadius(textBgRect, const Radius.circular(4)),
       textBgPaint,
     );
-    
+
     checkoutText.paint(
       canvas,
       Offset(
@@ -368,20 +293,19 @@ class StoreMapPainter extends CustomPainter {
     Canvas canvas,
     Offset Function(Point) toScreen,
     double scale,
+    StoreLayout layout,
   ) {
     if (userPosition == null || products.isEmpty) return;
 
     final navigationService = NavigationService();
     final destinations = products.map((p) {
-      return Position(
-        x: p.location.coordinates.x,
-        y: p.location.coordinates.y,
-      );
+      return Position(x: p.location.coordinates.x, y: p.location.coordinates.y);
     }).toList();
 
     final route = navigationService.calculateRoute(
       Position(x: userPosition!.x, y: userPosition!.y),
       destinations,
+      layout: layout,
     );
 
     if (route.length < 2) return;
@@ -418,6 +342,107 @@ class StoreMapPainter extends CustomPainter {
     }
   }
 
+  /// Draw route to next item only
+  void _drawRouteToNextItem(
+    Canvas canvas,
+    Offset Function(Point) toScreen,
+    double scale,
+    Point userPosPoint,
+    ProductModel next,
+  ) {
+    final navigationService = NavigationService();
+    final nextItemPoint = Point(
+      x: next.location.coordinates.x,
+      y: next.location.coordinates.y,
+    );
+
+    final userPos = Position(x: userPosPoint.x, y: userPosPoint.y);
+    final itemPos = Position(x: nextItemPoint.x, y: nextItemPoint.y);
+
+    // Use A* pathfinding to get route around obstacles
+    final route = navigationService.calculateRoute(userPos, [
+      itemPos,
+    ], layout: layout);
+
+    if (route.length < 2) return;
+
+    final distance = navigationService.calculateDistance(userPos, itemPos);
+
+    // Draw the pathfinding route
+    final routePaint = Paint()
+      ..color = Colors.orange
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3 * scale;
+
+    final path = Path();
+    final firstPoint = toScreen(Point(x: route.first.x, y: route.first.y));
+    path.moveTo(firstPoint.dx, firstPoint.dy);
+
+    for (int i = 1; i < route.length; i++) {
+      final point = toScreen(Point(x: route[i].x, y: route[i].y));
+      path.lineTo(point.dx, point.dy);
+    }
+
+    final dashPath = _createDashedPath(path, 10 * scale, 5 * scale);
+    canvas.drawPath(dashPath, routePaint);
+
+    // Draw arrow at the end
+    if (route.length >= 2) {
+      final secondLast = toScreen(
+        Point(x: route[route.length - 2].x, y: route[route.length - 2].y),
+      );
+      final last = toScreen(Point(x: route.last.x, y: route.last.y));
+      _drawArrow(canvas, secondLast, last, Colors.orange, scale);
+    }
+
+    // Draw distance label
+    final distanceText = distance < 1.0
+        ? '${(distance * 100).round()} cm'
+        : '${distance.toStringAsFixed(1)} m';
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: distanceText,
+        style: TextStyle(
+          fontSize: math.min(math.max(8 * scale, 8.0), 10.0).toDouble(),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    // Position label at midpoint of route
+    final midIndex = route.length ~/ 2;
+    final midPoint = toScreen(
+      Point(x: route[midIndex].x, y: route[midIndex].y),
+    );
+
+    // Draw background for distance label
+    final labelBgRect = Rect.fromLTWH(
+      midPoint.dx - textPainter.width / 2 - 4,
+      midPoint.dy - textPainter.height / 2 - 2,
+      textPainter.width + 8,
+      textPainter.height + 4,
+    );
+    final labelBgPaint = Paint()
+      ..color = Colors.orange.withOpacity(0.8)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(labelBgRect, const Radius.circular(4)),
+      labelBgPaint,
+    );
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        midPoint.dx - textPainter.width / 2,
+        midPoint.dy - textPainter.height / 2,
+      ),
+    );
+  }
+
   Path _createDashedPath(Path path, double dashLength, double dashSpace) {
     final dashPath = Path();
     final metrics = path.computeMetrics();
@@ -450,7 +475,7 @@ class StoreMapPainter extends CustomPainter {
     double scale,
   ) {
     final angle = math.atan2(end.dy - start.dy, end.dx - start.dx);
-    final arrowLength = 12 * scale;
+    final arrowLength = 6 * scale;
     final arrowAngle = math.pi / 6;
 
     final arrowPaint = Paint()
@@ -476,20 +501,32 @@ class StoreMapPainter extends CustomPainter {
     Canvas canvas,
     Offset position,
     ProductModel product,
-    double scale,
-  ) {
-    final color = _getCategoryColor(product.category);
+    double scale, {
+    bool isNextItem = false,
+  }) {
+    final color = isNextItem
+        ? Colors.orange
+        : _getCategoryColor(product.category);
 
-    // Draw marker circle
+    // Draw pulsing circle for next item
+    if (isNextItem) {
+      final pulseRadius = (2 * scale) * (1.0 + pulseAnimation.value * 0.2);
+      final pulsePaint = Paint()
+        ..color = Colors.orange.withOpacity(0.3)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(position, pulseRadius, pulsePaint);
+    }
+
+    // Draw marker circle (larger for next item)
     final markerPaint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
     final borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * scale;
+      ..strokeWidth = isNextItem ? 1 * scale : 0.8 * scale;
 
-    final radius = 12 * scale;
+    final radius = isNextItem ? 2 * scale : 1.5 * scale;
     canvas.drawCircle(position, radius, markerPaint);
     canvas.drawCircle(position, radius, borderPaint);
 
@@ -497,23 +534,30 @@ class StoreMapPainter extends CustomPainter {
     final iconPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(position, 6 * scale, iconPaint);
+    canvas.drawCircle(
+      position,
+      isNextItem ? 1 * scale : 0.8 * scale,
+      iconPaint,
+    );
 
     // Draw product name label with background
+    final labelText = isNextItem ? 'Next: ${product.name}' : product.name;
     final textPainter = TextPainter(
       text: TextSpan(
-        text: product.name,
+        text: labelText,
         style: TextStyle(
-          fontSize: math.max(9 * scale, 8.0).toDouble(),
+          fontSize: math
+              .min(math.max((isNextItem ? 5 : 4) * scale, 6.0), 9.0)
+              .toDouble(),
           color: Colors.white,
-          fontWeight: FontWeight.w600,
+          fontWeight: isNextItem ? FontWeight.bold : FontWeight.w600,
         ),
       ),
       textDirection: TextDirection.ltr,
       maxLines: 1,
     );
     textPainter.layout();
-    
+
     // Draw background for product label
     if (textPainter.width > 0) {
       final labelBgRect = Rect.fromLTWH(
@@ -530,43 +574,40 @@ class StoreMapPainter extends CustomPainter {
         labelBgPaint,
       );
     }
-    
+
     textPainter.paint(
       canvas,
-      Offset(
-        position.dx - textPainter.width / 2,
-        position.dy + radius + 3,
-      ),
+      Offset(position.dx - textPainter.width / 2, position.dy + radius + 3),
     );
   }
 
   void _drawUserPosition(Canvas canvas, Offset position, double scale) {
-    // Pulsing circle effect - roughly 1 meter radius
-    final pulseRadius = 1.0 * scale * (1.0 + pulseAnimation.value * 0.3);
+    // Pulsing circle effect - roughly 0.5 meter radius
+    final pulseRadius = 0.5 * scale * (1.0 + pulseAnimation.value * 0.3);
     final pulsePaint = Paint()
       ..color = AppTheme.primaryColor.withOpacity(0.2)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(position, pulseRadius, pulsePaint);
 
-    // Outer circle - 0.6 meters radius
+    // Outer circle - 0.3 meters radius
     final outerPaint = Paint()
       ..color = AppTheme.primaryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.15 * scale; // Line width
-    canvas.drawCircle(position, 0.6 * scale, outerPaint);
+      ..strokeWidth = 0.1 * scale; // Line width
+    canvas.drawCircle(position, 0.3 * scale, outerPaint);
 
-    // Inner filled circle - 0.4 meters radius
+    // Inner filled circle - 0.2 meters radius
     final innerPaint = Paint()
       ..color = AppTheme.primaryColor
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(position, 0.4 * scale, innerPaint);
+    canvas.drawCircle(position, 0.2 * scale, innerPaint);
 
     // "You are here" label - fixed pixel size for readability
     final textPainter = TextPainter(
       text: TextSpan(
         text: 'You',
         style: TextStyle(
-          fontSize: math.max(0.4 * scale, 10.0).toDouble(), // Min 10px
+          fontSize: math.min(math.max(0.3 * scale, 8.0), 9.0).toDouble(),
           color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
@@ -574,7 +615,7 @@ class StoreMapPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    
+
     // Draw background for "You" label
     final labelBgRect = Rect.fromLTWH(
       position.dx - textPainter.width / 2 - 2,
@@ -585,7 +626,7 @@ class StoreMapPainter extends CustomPainter {
     final labelBgPaint = Paint()
       ..color = AppTheme.primaryColor.withOpacity(0.8)
       ..style = PaintingStyle.fill;
-      
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(labelBgRect, const Radius.circular(4)),
       labelBgPaint,
@@ -619,7 +660,7 @@ class StoreMapPainter extends CustomPainter {
       text: TextSpan(
         text: 'ENTRY',
         style: TextStyle(
-          fontSize: math.max(0.5 * scale, 10.0).toDouble(), // Much smaller text
+          fontSize: math.min(math.max(0.4 * scale, 8.0), 9.0).toDouble(),
           color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
@@ -627,7 +668,7 @@ class StoreMapPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    
+
     // Draw background for label
     final labelBgRect = Rect.fromLTWH(
       position.dx - textPainter.width / 2 - 4,
@@ -642,13 +683,10 @@ class StoreMapPainter extends CustomPainter {
       RRect.fromRectAndRadius(labelBgRect, const Radius.circular(4)),
       labelBgPaint,
     );
-    
+
     textPainter.paint(
       canvas,
-      Offset(
-        position.dx - textPainter.width / 2,
-        position.dy + radius + 4,
-      ),
+      Offset(position.dx - textPainter.width / 2, position.dy + radius + 4),
     );
   }
 

@@ -3,11 +3,21 @@ import '../models/store_layout_model.dart';
 
 /// Store layout configuration for a typical grocery store
 /// Store dimensions: 50m × 30m
+///
+/// Layout Design:
+/// - 6 vertical aisles (A1, A2, A3, B1, B2, B3)
+/// - Each aisle: 2m wide × 24m long
+/// - Walkways: 3m wide between aisles
+/// - Entry: Top center (between A3 and B1)
+/// - Checkout: Bottom center (between A3 and B1)
 class StoreLayoutConfig {
   static const double storeWidth = 50.0; // meters
   static const double storeHeight = 30.0; // meters
-  static const double aisleWidth = 2.5; // meters (width of each aisle)
-  static const double sectionSpacing = 1.0; // meters between sections
+  static const double aisleWidth = 2.0; // meters (width of each aisle)
+  static const double aisleHeight = 24.0; // meters (length of each aisle)
+  static const double walkwayWidth = 3.0; // meters between aisles
+  static const double topMargin = 3.0; // meters from top edge
+  static const double bottomMargin = 3.0; // meters from bottom edge
 
   /// Get the default store layout
   static StoreLayout getDefaultLayout() {
@@ -16,69 +26,116 @@ class StoreLayoutConfig {
       height: storeHeight,
       aisles: _getAisles(),
       sections: _getSections(),
-      entryPoint: const Point(x: 23.5, y: 0.0), // Above aisle B2 area, in the gap between B2 (ends at 23.0) and C1 (starts at 25.0)
+      entryPoint: const Point(
+        x: 25.0, // Center of store (between A3 and B1)
+        y: 1.5, // Near top, in the walkway
+      ),
       checkoutArea: StoreRect(
-        x: 23.0,
-        y: 28.0,
+        x: 24.0, // Center area
+        y: 27.0, // Near bottom
         width: 2.0,
         height: 2.0,
-      ), // Between B2 (ends at 23.0) and C1 (starts at 25.0), back area - clear of aisles
+      ),
     );
   }
 
-  /// Define aisles (vertical aisles running front to back)
+  /// Define aisles (6 vertical aisles with proper spacing)
   static List<Aisle> _getAisles() {
+    // Calculate aisle positions
+    // Total width needed:
+    // 6 aisles × 2m = 12m
+    // 4 regular walkways × 3m = 12m (between A1-A2, A2-A3, B1-B2, B2-B3)
+    // 1 center walkway × 6m = 6m (between A3 and B1)
+    // Total = 30m
+    // Left margin = (50m - 30m) / 2 = 10m
+
+    final leftStartX = 10.0; // Center the aisles horizontally
+    final centerWalkway = 6.0; // Wider walkway between A and B sides
+    final aisleYStart = topMargin;
+
     return [
       // Left side aisles
       Aisle(
         id: 'A1',
         name: 'Aisle A1',
-        bounds: StoreRect(x: 2.0, y: 0.0, width: aisleWidth, height: storeHeight),
+        bounds: StoreRect(
+          x: leftStartX,
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
         sections: ['Dairy & Eggs', 'Bakery'],
       ),
       Aisle(
         id: 'A2',
         name: 'Aisle A2',
-        bounds: StoreRect(x: 6.5, y: 0.0, width: aisleWidth, height: storeHeight),
+        bounds: StoreRect(
+          x: leftStartX + aisleWidth + walkwayWidth, // 5 + 2 + 3 = 10
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
         sections: ['Meat & Seafood', 'Produce'],
       ),
       Aisle(
         id: 'A3',
         name: 'Aisle A3',
-        bounds: StoreRect(x: 11.0, y: 0.0, width: aisleWidth, height: storeHeight),
+        bounds: StoreRect(
+          x: leftStartX + (aisleWidth + walkwayWidth) * 2, // 5 + 10 = 15
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
         sections: ['Beverages', 'Pantry Staples'],
       ),
-      // Center aisles
+
+      // Right side aisles (after 6m center walkway)
+      // A3 ends at: leftStartX + (aisleWidth + walkwayWidth) * 2 + aisleWidth = 10 + 10 + 2 = 22
+      // B1 starts at: 22 + centerWalkway = 22 + 6 = 28
       Aisle(
         id: 'B1',
         name: 'Aisle B1',
-        bounds: StoreRect(x: 16.0, y: 0.0, width: aisleWidth, height: storeHeight),
+        bounds: StoreRect(
+          x:
+              leftStartX +
+              (aisleWidth + walkwayWidth) * 2 +
+              aisleWidth +
+              centerWalkway, // 10 + 10 + 2 + 6 = 28
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
         sections: ['Frozen Foods', 'Snacks'],
       ),
       Aisle(
         id: 'B2',
         name: 'Aisle B2',
-        bounds: StoreRect(x: 20.5, y: 0.0, width: aisleWidth, height: storeHeight),
+        bounds: StoreRect(
+          x:
+              leftStartX +
+              (aisleWidth + walkwayWidth) * 3 +
+              aisleWidth +
+              centerWalkway, // 10 + 15 + 2 + 6 = 33
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
         sections: ['Household Items', 'Personal Care'],
       ),
-      // Right side aisles
       Aisle(
-        id: 'C1',
-        name: 'Aisle C1',
-        bounds: StoreRect(x: 25.0, y: 0.0, width: aisleWidth, height: storeHeight),
-        sections: ['Pantry Staples', 'Beverages'],
-      ),
-      Aisle(
-        id: 'C2',
-        name: 'Aisle C2',
-        bounds: StoreRect(x: 29.5, y: 0.0, width: aisleWidth, height: storeHeight),
-        sections: ['Produce', 'Meat & Seafood'],
-      ),
-      Aisle(
-        id: 'C3',
-        name: 'Aisle C3',
-        bounds: StoreRect(x: 34.0, y: 0.0, width: aisleWidth, height: storeHeight),
-        sections: ['Bakery', 'Dairy & Eggs'],
+        id: 'B3',
+        name: 'Aisle B3',
+        bounds: StoreRect(
+          x:
+              leftStartX +
+              (aisleWidth + walkwayWidth) * 4 +
+              aisleWidth +
+              centerWalkway, // 10 + 20 + 2 + 6 = 38
+          y: aisleYStart,
+          width: aisleWidth,
+          height: aisleHeight,
+        ),
+        sections: ['Health & Beauty', 'Baby Care'],
       ),
     ];
   }
@@ -86,153 +143,108 @@ class StoreLayoutConfig {
   /// Define sections/departments
   static List<Section> _getSections() {
     return [
-      // Left side sections
+      // A1 aisle sections (x=10)
       Section(
         id: 'dairy',
         name: 'Dairy & Eggs',
-        category: 'Dairy & Eggs',
-        bounds: StoreRect(x: 0.0, y: 0.0, width: 2.0, height: 8.0),
-        color: Colors.blue.shade50,
-        icon: Icons.local_dining,
+        category: 'Fresh',
+        bounds: StoreRect(x: 10.0, y: 3.0, width: 2.0, height: 12.0),
+        color: Colors.blue.shade100,
+        icon: Icons.egg,
       ),
       Section(
-        id: 'bakery-left',
+        id: 'bakery',
         name: 'Bakery',
-        category: 'Bakery',
-        bounds: StoreRect(x: 0.0, y: 8.0, width: 2.0, height: 6.0),
-        color: Colors.orange.shade50,
-        icon: Icons.cake,
+        category: 'Fresh',
+        bounds: StoreRect(x: 10.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.orange.shade100,
+        icon: Icons.bakery_dining,
       ),
+      // A2 aisle sections (x=15)
       Section(
         id: 'meat',
         name: 'Meat & Seafood',
-        category: 'Meat & Seafood',
-        bounds: StoreRect(x: 4.5, y: 0.0, width: 2.0, height: 10.0),
-        color: Colors.red.shade50,
+        category: 'Fresh',
+        bounds: StoreRect(x: 15.0, y: 3.0, width: 2.0, height: 12.0),
+        color: Colors.red.shade100,
         icon: Icons.set_meal,
       ),
       Section(
-        id: 'produce-left',
+        id: 'produce',
         name: 'Produce',
-        category: 'Produce',
-        bounds: StoreRect(x: 4.5, y: 10.0, width: 2.0, height: 8.0),
-        color: Colors.green.shade50,
-        icon: Icons.eco,
+        category: 'Fresh',
+        bounds: StoreRect(x: 15.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.green.shade100,
+        icon: Icons.local_florist,
       ),
+      // A3 aisle sections (x=20)
       Section(
-        id: 'beverages-left',
+        id: 'beverages',
         name: 'Beverages',
-        category: 'Beverages',
-        bounds: StoreRect(x: 9.0, y: 0.0, width: 2.0, height: 8.0),
-        color: Colors.cyan.shade50,
+        category: 'Grocery',
+        bounds: StoreRect(x: 20.0, y: 3.0, width: 2.0, height: 12.0),
+        color: Colors.cyan.shade100,
         icon: Icons.local_drink,
       ),
       Section(
-        id: 'pantry-left',
+        id: 'pantry',
         name: 'Pantry Staples',
-        category: 'Pantry Staples',
-        bounds: StoreRect(x: 9.0, y: 8.0, width: 2.0, height: 10.0),
-        color: Colors.brown.shade50,
+        category: 'Grocery',
+        bounds: StoreRect(x: 20.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.brown.shade100,
         icon: Icons.kitchen,
       ),
-      // Center sections
+      // B1 aisle sections (x=28)
       Section(
         id: 'frozen',
         name: 'Frozen Foods',
-        category: 'Frozen Foods',
-        bounds: StoreRect(x: 14.0, y: 0.0, width: 2.0, height: 12.0),
-        color: Colors.lightBlue.shade50,
+        category: 'Frozen',
+        bounds: StoreRect(x: 28.0, y: 3.0, width: 2.0, height: 12.0),
+        color: Colors.lightBlue.shade100,
         icon: Icons.ac_unit,
       ),
       Section(
         id: 'snacks',
         name: 'Snacks',
-        category: 'Pantry Staples',
-        bounds: StoreRect(x: 14.0, y: 12.0, width: 2.0, height: 6.0),
-        color: Colors.amber.shade50,
-        icon: Icons.cookie,
+        category: 'Grocery',
+        bounds: StoreRect(x: 28.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.amber.shade100,
+        icon: Icons.fastfood,
       ),
+      // B2 aisle sections (x=33)
       Section(
         id: 'household',
         name: 'Household Items',
-        category: 'Household Items',
-        bounds: StoreRect(x: 18.5, y: 0.0, width: 2.0, height: 10.0),
+        category: 'Non-Food',
+        bounds: StoreRect(x: 33.0, y: 3.0, width: 2.0, height: 12.0),
         color: Colors.grey.shade100,
         icon: Icons.home,
       ),
       Section(
-        id: 'personal-care',
+        id: 'personal',
         name: 'Personal Care',
-        category: 'Personal Care',
-        bounds: StoreRect(x: 18.5, y: 10.0, width: 2.0, height: 8.0),
-        color: Colors.pink.shade50,
-        icon: Icons.spa,
+        category: 'Health & Beauty',
+        bounds: StoreRect(x: 33.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.pink.shade100,
+        icon: Icons.face,
       ),
-      // Right side sections
+      // B3 aisle sections (x=38)
       Section(
-        id: 'pantry-right',
-        name: 'Pantry Staples',
-        category: 'Pantry Staples',
-        bounds: StoreRect(x: 23.0, y: 0.0, width: 2.0, height: 10.0),
-        color: Colors.brown.shade50,
-        icon: Icons.kitchen,
-      ),
-      Section(
-        id: 'beverages-right',
-        name: 'Beverages',
-        category: 'Beverages',
-        bounds: StoreRect(x: 23.0, y: 10.0, width: 2.0, height: 8.0),
-        color: Colors.cyan.shade50,
-        icon: Icons.local_drink,
+        id: 'health',
+        name: 'Health & Beauty',
+        category: 'Health & Beauty',
+        bounds: StoreRect(x: 38.0, y: 3.0, width: 2.0, height: 12.0),
+        color: Colors.purple.shade100,
+        icon: Icons.health_and_safety,
       ),
       Section(
-        id: 'produce-right',
-        name: 'Produce',
-        category: 'Produce',
-        bounds: StoreRect(x: 27.5, y: 0.0, width: 2.0, height: 8.0),
-        color: Colors.green.shade50,
-        icon: Icons.eco,
-      ),
-      Section(
-        id: 'meat-right',
-        name: 'Meat & Seafood',
-        category: 'Meat & Seafood',
-        bounds: StoreRect(x: 27.5, y: 8.0, width: 2.0, height: 10.0),
-        color: Colors.red.shade50,
-        icon: Icons.set_meal,
-      ),
-      Section(
-        id: 'bakery-right',
-        name: 'Bakery',
-        category: 'Bakery',
-        bounds: StoreRect(x: 32.0, y: 0.0, width: 2.0, height: 6.0),
-        color: Colors.orange.shade50,
-        icon: Icons.cake,
-      ),
-      Section(
-        id: 'dairy-right',
-        name: 'Dairy & Eggs',
-        category: 'Dairy & Eggs',
-        bounds: StoreRect(x: 32.0, y: 6.0, width: 2.0, height: 8.0),
-        color: Colors.blue.shade50,
-        icon: Icons.local_dining,
+        id: 'baby',
+        name: 'Baby Care',
+        category: 'Baby',
+        bounds: StoreRect(x: 38.0, y: 15.0, width: 2.0, height: 12.0),
+        color: Colors.yellow.shade100,
+        icon: Icons.child_care,
       ),
     ];
-  }
-
-  /// Get section by category name
-  static Section? getSectionByCategory(String category) {
-    return _getSections().firstWhere(
-      (section) => section.category == category,
-      orElse: () => _getSections().first,
-    );
-  }
-
-  /// Get aisle by ID
-  static Aisle? getAisleById(String aisleId) {
-    return _getAisles().firstWhere(
-      (aisle) => aisle.id == aisleId,
-      orElse: () => _getAisles().first,
-    );
   }
 }

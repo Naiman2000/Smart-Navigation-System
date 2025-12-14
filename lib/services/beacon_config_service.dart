@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import '../models/beacon_model.dart';
 import '../models/store_layout_model.dart';
@@ -196,6 +197,74 @@ class BeaconConfigService {
   /// Clear cache
   void clearCache() {
     _positionCache.clear();
+  }
+
+  // ============================================================================
+  // PROXIMITY HELPERS (for product location binding)
+  // ============================================================================
+
+  /// Get all beacons within a specified radius of a position
+  Future<List<BeaconModel>> getBeaconsNearPosition(
+    Point position,
+    double radius,
+  ) async {
+    try {
+      final allBeacons = await getAllBeacons(activeOnly: true);
+      final nearbyBeacons = <BeaconModel>[];
+
+      for (final beacon in allBeacons) {
+        final distance = _calculateDistance(position, beacon.position);
+        if (distance <= radius) {
+          nearbyBeacons.add(beacon);
+        }
+      }
+
+      // Sort by distance (closest first)
+      nearbyBeacons.sort((a, b) {
+        final distA = _calculateDistance(position, a.position);
+        final distB = _calculateDistance(position, b.position);
+        return distA.compareTo(distB);
+      });
+
+      return nearbyBeacons;
+    } catch (e) {
+      debugPrint('Failed to get beacons near position: $e');
+      return [];
+    }
+  }
+
+  /// Find the nearest beacon to a given position
+  /// Returns null if no active beacons found
+  Future<BeaconModel?> findNearestBeacon(Point position) async {
+    try {
+      final allBeacons = await getAllBeacons(activeOnly: true);
+      if (allBeacons.isEmpty) {
+        return null;
+      }
+
+      BeaconModel? nearest;
+      double minDistance = double.infinity;
+
+      for (final beacon in allBeacons) {
+        final distance = _calculateDistance(position, beacon.position);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearest = beacon;
+        }
+      }
+
+      return nearest;
+    } catch (e) {
+      debugPrint('Failed to find nearest beacon: $e');
+      return null;
+    }
+  }
+
+  /// Calculate Euclidean distance between two points
+  double _calculateDistance(Point p1, Point p2) {
+    final dx = p2.x - p1.x;
+    final dy = p2.y - p1.y;
+    return math.sqrt(dx * dx + dy * dy);
   }
 
   // ============================================================================
