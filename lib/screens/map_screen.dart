@@ -19,10 +19,14 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  State<MapScreen> createState() => MapScreenState();
+
+  // Global key to access state from outside
+  static final GlobalKey<MapScreenState> globalKey = GlobalKey<MapScreenState>();
+  static MapScreenState? get instance => globalKey.currentState;
 }
 
-class _MapScreenState extends State<MapScreen> {
+class MapScreenState extends State<MapScreen> {
   final _beaconService = BeaconService();
   final _navigationService = NavigationService();
   final _firebaseService = FirebaseService();
@@ -67,13 +71,18 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Load shopping list from route arguments
+    // Load shopping list from route arguments or reload if needed
     if (_currentShoppingList == null) {
       final arguments = ModalRoute.of(context)?.settings.arguments;
       if (arguments is ShoppingListModel) {
         setState(() {
           _currentShoppingList = arguments;
         });
+        // Load products for the shopping list from arguments
+        _loadProductsFromShoppingList();
+      } else {
+        // No arguments - try to load most recent shopping list
+        _loadProductsFromShoppingList();
       }
     }
   }
@@ -530,9 +539,54 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // Public method to update shopping list from outside
+  void updateShoppingList(ShoppingListModel? shoppingList) {
+    if (mounted) {
+      setState(() {
+        _currentShoppingList = shoppingList;
+      });
+      _loadProductsFromShoppingList();
+    }
+  }
+
+  /// Load the most recent active shopping list from Firebase
+  Future<ShoppingListModel?> _loadMostRecentShoppingList() async {
+    try {
+      final userId = _firebaseService.currentUser?.uid;
+      if (userId == null) {
+        return null;
+      }
+
+      // Get user's shopping lists (ordered by createdAt descending)
+      final listsStream = _firebaseService.getUserShoppingLists(userId);
+      
+      // Get the first (most recent) list
+      final lists = await listsStream.first;
+      if (lists.isNotEmpty) {
+        return lists.first; // Most recent list
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Failed to load most recent shopping list: $e');
+      return null;
+    }
+  }
+
   Future<void> _loadProductsFromShoppingList() async {
+    // First try to get shopping list from route arguments
     final arguments = ModalRoute.of(context)?.settings.arguments;
-    final shoppingList = arguments as ShoppingListModel?;
+    ShoppingListModel? shoppingList = arguments as ShoppingListModel?;
+
+    // If no arguments and no current shopping list, load most recent from Firebase
+    if (shoppingList == null && _currentShoppingList == null) {
+      shoppingList = await _loadMostRecentShoppingList();
+    }
+
+    // Use existing shopping list if no new one found
+    if (shoppingList == null) {
+      shoppingList = _currentShoppingList;
+    }
 
     setState(() {
       _currentShoppingList = shoppingList;
@@ -675,14 +729,17 @@ class _MapScreenState extends State<MapScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          // Update Product Positions button (temporary admin tool)
+          // Refresh Map button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshMap,
+            tooltip: 'Refresh Map',
+          ),
+          // Menu button
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               switch (value) {
-                case 'refresh':
-                  _refreshMap();
-                  break;
                 case 'toggle_scan':
                   if (_isScanning) {
                     _stopScanning();
@@ -693,22 +750,9 @@ class _MapScreenState extends State<MapScreen> {
                 case 'settings':
                   Navigator.pushNamed(context, '/beaconConfig');
                   break;
-                case 'home':
-                  Navigator.pop(context);
-                  break;
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'refresh',
-                child: Row(
-                  children: [
-                    const Icon(Icons.refresh, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('Refresh Map'),
-                  ],
-                ),
-              ),
               PopupMenuItem(
                 value: 'toggle_scan',
                 child: Row(
@@ -726,16 +770,6 @@ class _MapScreenState extends State<MapScreen> {
                     Icon(Icons.settings, size: 20),
                     SizedBox(width: 8),
                     Text('Beacon Settings'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'home',
-                child: Row(
-                  children: [
-                    Icon(Icons.home, size: 20),
-                    SizedBox(width: 8),
-                    Text('Back to Home'),
                   ],
                 ),
               ),

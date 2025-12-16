@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/shopping_list_model.dart';
 import '../services/firebase_service.dart';
+import 'main_navigation_screen.dart';
+import 'map_screen.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key});
@@ -339,26 +341,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          // Navigate to map screen with the shopping list
-          Navigator.pushNamed(context, '/map', arguments: list);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // List Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // List Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
-              child: Row(
+            ),
+            child: Row(
                 children: [
                   Icon(Icons.shopping_basket, color: Colors.green, size: 28),
                   const SizedBox(width: 12),
@@ -397,17 +393,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   ),
                 ],
               ),
-            ),
+          ),
 
-            // Progress Bar
-            if (totalItems > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                color: Colors.grey.shade50,
-                child: Row(
+          // Progress Bar
+          if (totalItems > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              color: Colors.grey.shade50,
+              child: Row(
                   children: [
                     Expanded(
                       child: ClipRRect(
@@ -435,13 +431,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     ),
                   ],
                 ),
-              ),
+            ),
 
-            // Items List (show max 3 items)
-            if (list.items.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+          // Items List (show max 3 items)
+          if (list.items.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                   children: [
                     for (int i = 0; i < list.items.take(3).length; i++)
                       _buildItemRow(list.items[i], list.listId),
@@ -459,21 +455,66 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       ),
                   ],
                 ),
-              ),
-            ] else
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'No items in this list',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                    fontStyle: FontStyle.italic,
-                  ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'No items in this list',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
-          ],
-        ),
+            ),
+
+          // Start Navigation Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Switch to map tab and update it with the shopping list
+                  context.switchToMainTab(1); // Switch to map tab (index 1)
+
+                  // Update the map screen with the shopping list
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final mapState = MapScreen.instance;
+                    if (mapState != null) {
+                      mapState.updateShoppingList(list);
+                    }
+                  });
+                },
+                icon: const Icon(Icons.navigation, size: 20),
+                label: const Text(
+                  'Start Navigation',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

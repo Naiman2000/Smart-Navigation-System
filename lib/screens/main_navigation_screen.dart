@@ -297,7 +297,7 @@ class _LazyScreenBuilderState extends State<_LazyScreenBuilder> {
         screen = const HomeScreen();
         break;
       case 1:
-        screen = const MapScreen();
+        screen = MapScreen(key: MapScreen.globalKey);
         break;
       case 2:
         screen = const ShoppingListScreen();
