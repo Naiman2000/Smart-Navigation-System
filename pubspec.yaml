@@ -94,13 +94,13 @@ flutter:
 # Flutter Native Splash Configuration
 flutter_native_splash:
   # This is the logo centered on the splash screen
-  image: assets/images/logo/app_logo_splash.png
+  image: assets/images/logo/app_icon_source.png
   # Color for splash screen background
   color: "#FAFAFA"
   
   # Android 12+ specific configuration (uses the branding image)
   android_12:
-    image: assets/images/logo/app_logo_splash.png
+    image: assets/images/logo/app_icon_source.png
     color: "#FAFAFA"
   
   # Classic Android configuration
