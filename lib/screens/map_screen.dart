@@ -54,12 +54,12 @@ class _MapScreenState extends State<MapScreen> {
     // Delay beacon check to avoid blocking navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _initializeBeaconSystem();
+        // _initializeBeaconSystem();
         _checkBeaconStatus();
         _initializeUserPosition();
         _loadProductsFromShoppingList();
         // Auto-start scanning after 2-3 second delay
-        _autoStartScanning();
+        // _autoStartScanning(); // COMMENTED OUT: Non-stop Bluetooth scan disabled
       }
     });
   }
@@ -78,25 +78,26 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _autoStartScanning() async {
-    // Wait 2-3 seconds before auto-starting
-    await Future.delayed(const Duration(seconds: 2));
+  // COMMENTED OUT: Non-stop Bluetooth scan disabled
+  // Future<void> _autoStartScanning() async {
+  //   // Wait 2-3 seconds before auto-starting
+  //   await Future.delayed(const Duration(seconds: 2));
 
-    if (!mounted) return;
+  //   if (!mounted) return;
 
-    // Check if Bluetooth is available and not already scanning
-    try {
-      final isAvailable = await _beaconService.initializeBluetooth();
-      if (isAvailable && !_isScanning && mounted) {
-        setState(() {
-          _connectionStatus = 'Initializing...';
-        });
-        await _startScanning();
-      }
-    } catch (e) {
-      debugPrint('Auto-start scanning failed: $e');
-    }
-  }
+  //   // Check if Bluetooth is available and not already scanning
+  //   try {
+  //     final isAvailable = await _beaconService.initializeBluetooth();
+  //     if (isAvailable && !_isScanning && mounted) {
+  //       setState(() {
+  //         _connectionStatus = 'Initializing...';
+  //       });
+  //       await _startScanning();
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Auto-start scanning failed: $e');
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -111,15 +112,16 @@ class _MapScreenState extends State<MapScreen> {
     await _beaconConfigService.initializeCache();
 
     // Subscribe to beacon stream for real-time updates
-    _beaconSubscription = _beaconService.beaconStream.listen((beacons) {
-      if (mounted) {
-        setState(() {
-          _detectedBeacons = beacons;
-          _beaconsDetected = beacons.length;
-        });
-        _updateUserPosition(beacons);
-      }
-    });
+    // COMMENTED OUT: Non-stop Bluetooth scan disabled
+    // _beaconSubscription = _beaconService.beaconStream.listen((beacons) {
+    //   if (mounted) {
+    //     setState(() {
+    //       _detectedBeacons = beacons;
+    //       _beaconsDetected = beacons.length;
+    //     });
+    //     _updateUserPosition(beacons);
+    //   }
+    // });
   }
 
   Future<void> _updateUserPosition(List<BeaconData> beacons) async {
@@ -521,9 +523,9 @@ class _MapScreenState extends State<MapScreen> {
         _userPosition = Point(x: position.x, y: position.y);
       });
     } else {
-      // Default position at entry point
+      // Default position slightly offset from entry point to avoid overlap
       setState(() {
-        _userPosition = const Point(x: 25.0, y: 0.0);
+        _userPosition = const Point(x: 25.0, y: 29.0);
       });
     }
   }
@@ -674,18 +676,6 @@ class _MapScreenState extends State<MapScreen> {
         elevation: 0,
         actions: [
           // Update Product Positions button (temporary admin tool)
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Update Product Positions',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const UpdateProductPositionsScreen(),
-                ),
-              );
-            },
-          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {

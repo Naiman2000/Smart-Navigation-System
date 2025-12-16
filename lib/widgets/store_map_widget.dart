@@ -205,12 +205,8 @@ class StoreMapPainter extends CustomPainter {
     }
 
     // Draw navigation route if enabled (only to next item if specified)
-    if (showRoute && userPosition != null) {
-      if (nextItem != null) {
-        _drawRouteToNextItem(canvas, toScreen, scale, userPosition!, nextItem!);
-      } else if (products.isNotEmpty) {
-        _drawNavigationRoute(canvas, toScreen, scale, layout);
-      }
+    if (showRoute && userPosition != null && nextItem != null) {
+      _drawRouteToNextItem(canvas, toScreen, scale, userPosition!, nextItem!);
     }
 
     // Draw product markers (highlight next item if specified)
@@ -230,13 +226,13 @@ class StoreMapPainter extends CustomPainter {
       );
     }
 
-    // Draw user position
+    // Draw entry point first (so user position appears on top)
+    _drawEntryPoint(canvas, toScreen(layout.entryPoint), scale);
+
+    // Draw user position (drawn after entry so it appears on top)
     if (userPosition != null) {
       _drawUserPosition(canvas, toScreen(userPosition!), scale);
     }
-
-    // Draw entry point
-    _drawEntryPoint(canvas, toScreen(layout.entryPoint), scale);
 
     // Draw checkout area
     final checkoutRect = toScreenRect(layout.checkoutArea);
@@ -289,59 +285,6 @@ class StoreMapPainter extends CustomPainter {
     );
   }
 
-  void _drawNavigationRoute(
-    Canvas canvas,
-    Offset Function(Point) toScreen,
-    double scale,
-    StoreLayout layout,
-  ) {
-    if (userPosition == null || products.isEmpty) return;
-
-    final navigationService = NavigationService();
-    final destinations = products.map((p) {
-      return Position(x: p.location.coordinates.x, y: p.location.coordinates.y);
-    }).toList();
-
-    final route = navigationService.calculateRoute(
-      Position(x: userPosition!.x, y: userPosition!.y),
-      destinations,
-      layout: layout,
-    );
-
-    if (route.length < 2) return;
-
-    final path = Path();
-    final start = toScreen(Point(x: route[0].x, y: route[0].y));
-    path.moveTo(start.dx, start.dy);
-
-    for (int i = 1; i < route.length; i++) {
-      final point = toScreen(Point(x: route[i].x, y: route[i].y));
-      path.lineTo(point.dx, point.dy);
-    }
-
-    // Draw dashed line
-    final dashPaint = Paint()
-      ..color = AppTheme.primaryColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * scale;
-
-    final dashPath = _createDashedPath(path, 8 * scale, 4 * scale);
-    canvas.drawPath(dashPath, dashPaint);
-
-    // Draw arrows along the route
-    for (int i = 0; i < route.length - 1; i++) {
-      final start = Point(x: route[i].x, y: route[i].y);
-      final end = Point(x: route[i + 1].x, y: route[i + 1].y);
-      _drawArrow(
-        canvas,
-        toScreen(start),
-        toScreen(end),
-        AppTheme.primaryColor,
-        scale,
-      );
-    }
-  }
-
   /// Draw route to next item only
   void _drawRouteToNextItem(
     Canvas canvas,
@@ -366,135 +309,67 @@ class StoreMapPainter extends CustomPainter {
 
     if (route.length < 2) return;
 
-    final distance = navigationService.calculateDistance(userPos, itemPos);
-
-    // Draw the pathfinding route
-    final routePaint = Paint()
-      ..color = Colors.orange
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3 * scale;
-
+    // Create smooth path with rounded corners
     final path = Path();
     final firstPoint = toScreen(Point(x: route.first.x, y: route.first.y));
     path.moveTo(firstPoint.dx, firstPoint.dy);
 
-    for (int i = 1; i < route.length; i++) {
-      final point = toScreen(Point(x: route[i].x, y: route[i].y));
-      path.lineTo(point.dx, point.dy);
-    }
-
-    final dashPath = _createDashedPath(path, 10 * scale, 5 * scale);
-    canvas.drawPath(dashPath, routePaint);
-
-    // Draw arrow at the end
-    if (route.length >= 2) {
-      final secondLast = toScreen(
-        Point(x: route[route.length - 2].x, y: route[route.length - 2].y),
-      );
-      final last = toScreen(Point(x: route.last.x, y: route.last.y));
-      _drawArrow(canvas, secondLast, last, Colors.orange, scale);
-    }
-
-    // Draw distance label
-    final distanceText = distance < 1.0
-        ? '${(distance * 100).round()} cm'
-        : '${distance.toStringAsFixed(1)} m';
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: distanceText,
-        style: TextStyle(
-          fontSize: math.min(math.max(8 * scale, 8.0), 10.0).toDouble(),
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-
-    // Position label at midpoint of route
-    final midIndex = route.length ~/ 2;
-    final midPoint = toScreen(
-      Point(x: route[midIndex].x, y: route[midIndex].y),
-    );
-
-    // Draw background for distance label
-    final labelBgRect = Rect.fromLTWH(
-      midPoint.dx - textPainter.width / 2 - 4,
-      midPoint.dy - textPainter.height / 2 - 2,
-      textPainter.width + 8,
-      textPainter.height + 4,
-    );
-    final labelBgPaint = Paint()
-      ..color = Colors.orange.withOpacity(0.8)
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(labelBgRect, const Radius.circular(4)),
-      labelBgPaint,
-    );
-
-    textPainter.paint(
-      canvas,
-      Offset(
-        midPoint.dx - textPainter.width / 2,
-        midPoint.dy - textPainter.height / 2,
-      ),
-    );
-  }
-
-  Path _createDashedPath(Path path, double dashLength, double dashSpace) {
-    final dashPath = Path();
-    final metrics = path.computeMetrics();
-
-    for (final metric in metrics) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final start = metric.getTangentForOffset(distance);
-        if (start != null) {
-          dashPath.moveTo(start.position.dx, start.position.dy);
+    // Use quadratic bezier curves for smoother path transitions
+    if (route.length == 2) {
+      // Simple straight line
+      final endPoint = toScreen(Point(x: route.last.x, y: route.last.y));
+      path.lineTo(endPoint.dx, endPoint.dy);
+    } else {
+      // Smooth path with rounded corners
+      for (int i = 1; i < route.length; i++) {
+        final currentPoint = toScreen(Point(x: route[i].x, y: route[i].y));
+        
+        if (i == 1) {
+          path.lineTo(currentPoint.dx, currentPoint.dy);
+        } else {
+          // Use previous point for smooth curve
+          final prevPoint = toScreen(Point(x: route[i - 1].x, y: route[i - 1].y));
+          final controlPoint = Offset(
+            (prevPoint.dx + currentPoint.dx) / 2,
+            (prevPoint.dy + currentPoint.dy) / 2,
+          );
+          path.quadraticBezierTo(
+            controlPoint.dx,
+            controlPoint.dy,
+            currentPoint.dx,
+            currentPoint.dy,
+          );
         }
-        distance += dashLength;
-        if (distance < metric.length) {
-          final end = metric.getTangentForOffset(distance);
-          if (end != null) {
-            dashPath.lineTo(end.position.dx, end.position.dy);
-          }
-        }
-        distance += dashSpace;
       }
     }
-    return dashPath;
-  }
 
-  void _drawArrow(
-    Canvas canvas,
-    Offset start,
-    Offset end,
-    Color color,
-    double scale,
-  ) {
-    final angle = math.atan2(end.dy - start.dy, end.dx - start.dx);
-    final arrowLength = 6 * scale;
-    final arrowAngle = math.pi / 6;
+    // Draw path with improved UI/UX
+    // 1. Draw subtle shadow/outline for depth
+    final pathShadowPaint = Paint()
+      ..color = Colors.orange.withOpacity(0.2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (2.5 * scale).clamp(2.0, 4.0)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, pathShadowPaint);
 
-    final arrowPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
+    // 2. Draw main path with reduced thickness
+    final routePaint = Paint()
+      ..color = Colors.orange.shade600
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (1.8 * scale).clamp(1.5, 3.0) // Reduced from 3.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, routePaint);
 
-    final path = Path();
-    path.moveTo(end.dx, end.dy);
-    path.lineTo(
-      end.dx - arrowLength * math.cos(angle - arrowAngle),
-      end.dy - arrowLength * math.sin(angle - arrowAngle),
-    );
-    path.lineTo(
-      end.dx - arrowLength * math.cos(angle + arrowAngle),
-      end.dy - arrowLength * math.sin(angle + arrowAngle),
-    );
-    path.close();
-
-    canvas.drawPath(path, arrowPaint);
+    // 3. Draw inner highlight for depth
+    final highlightPaint = Paint()
+      ..color = Colors.orange.shade300.withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (1.0 * scale).clamp(0.8, 1.5)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, highlightPaint);
   }
 
   void _drawProductMarker(

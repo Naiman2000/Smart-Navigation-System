@@ -7,14 +7,18 @@ class AStarPathfinder {
 
   /// Find path from start to goal avoiding obstacles
   List<Position> findPath(Position start, Position goal, StoreLayout layout) {
+    // Adjust both start and goal positions if they're in aisles to be at walkable centers
+    final adjustedStart = _adjustToWalkablePosition(start, layout);
+    final adjustedGoal = _adjustToWalkablePosition(goal, layout);
+    
     // Convert positions to grid coordinates
     final startNode = _GridNode(
-      x: (start.x / gridSize).round(),
-      y: (start.y / gridSize).round(),
+      x: (adjustedStart.x / gridSize).round(),
+      y: (adjustedStart.y / gridSize).round(),
     );
     final goalNode = _GridNode(
-      x: (goal.x / gridSize).round(),
-      y: (goal.y / gridSize).round(),
+      x: (adjustedGoal.x / gridSize).round(),
+      y: (adjustedGoal.y / gridSize).round(),
     );
 
     // Open and closed sets
@@ -53,9 +57,12 @@ class AStarPathfinder {
         );
         if (!_isWalkable(neighborPos, layout)) continue;
 
-        // Calculate tentative gScore
+        // Calculate tentative gScore with penalty for aisle centers
+        // This makes the algorithm prefer walkways over aisle centers
+        final baseDistance = _distance(current, neighbor);
+        final aislePenalty = _getAisleContaining(neighborPos, layout) != null ? 2.0 : 0.0;
         final tentativeG =
-            (gScore[current] ?? double.infinity) + _distance(current, neighbor);
+            (gScore[current] ?? double.infinity) + baseDistance + aislePenalty;
 
         if (!openSet.contains(neighbor)) {
           openSet.add(neighbor);
@@ -71,56 +78,28 @@ class AStarPathfinder {
     }
 
     // No path found using A*, try adding waypoints
-    return _findPathWithWaypoints(start, goal, layout);
+    return _findPathWithWaypoints(adjustedStart, adjustedGoal, layout);
   }
 
   /// Find path by adding waypoints at aisle ends
-  /// This ensures the path goes around aisles rather than through them
+  /// This ensures the path goes through walkways between aisles
+  /// Note: These waypoints will be connected using A* pathfinding in navigation_service
   List<Position> _findPathWithWaypoints(
     Position start,
     Position goal,
     StoreLayout layout,
   ) {
-    // Check if start and goal are in different aisles
-    final startAisle = _getAisleContaining(start, layout);
-    final goalAisle = _getAisleContaining(goal, layout);
-
-    // If both in same aisle, use straight path
-    if (startAisle != null && startAisle == goalAisle) {
-      return [start, goal];
+    // Both start and goal are already adjusted to walkway positions (beside aisles)
+    final adjustedStart = _adjustToWalkablePosition(start, layout);
+    final adjustedGoal = _adjustToWalkablePosition(goal, layout);
+    
+    // Since adjusted positions are in walkways, we can route directly
+    // The A* pathfinding will handle routing through walkways
+    if (_distanceBetween(adjustedStart, adjustedGoal) > 0.1) {
+      return [adjustedStart, adjustedGoal];
     }
-
-    // Build path with waypoints
-    final waypoints = <Position>[start];
-
-    // If goal is in an aisle, we need to route to the aisle entrance
-    if (goalAisle != null) {
-      // Find which end of the goal aisle is closer to start
-      final aisleTopEnd = Position(
-        x: goalAisle.bounds.x + goalAisle.bounds.width / 2,
-        y: goalAisle.bounds.y,
-      );
-      final aisleBottomEnd = Position(
-        x: goalAisle.bounds.x + goalAisle.bounds.width / 2,
-        y: goalAisle.bounds.y + goalAisle.bounds.height,
-      );
-
-      // Choose the closer end
-      final distToTop = _distanceBetween(start, aisleTopEnd);
-      final distToBottom = _distanceBetween(start, aisleBottomEnd);
-
-      final aisleEntrance = distToTop < distToBottom
-          ? aisleTopEnd
-          : aisleBottomEnd;
-
-      // Add waypoint at aisle entrance (only if it's not too close to start)
-      if (_distanceBetween(start, aisleEntrance) > 1.0) {
-        waypoints.add(aisleEntrance);
-      }
-    }
-
-    waypoints.add(goal);
-    return waypoints;
+    
+    return [adjustedStart];
   }
 
   /// Get the aisle containing a position, or null if not in any aisle
@@ -136,25 +115,6 @@ class AStarPathfinder {
     return null;
   }
 
-  /// Get the end point of an aisle that's closest to the target
-  Position _getAisleEnd(Aisle aisle, Position target) {
-    // Aisles are vertical, so we check top and bottom ends
-    final topEnd = Position(
-      x: aisle.bounds.x + aisle.bounds.width / 2,
-      y: aisle.bounds.y,
-    );
-    final bottomEnd = Position(
-      x: aisle.bounds.x + aisle.bounds.width / 2,
-      y: aisle.bounds.y + aisle.bounds.height,
-    );
-
-    // Return the end closer to target
-    final distToTop = _distanceBetween(topEnd, target);
-    final distToBottom = _distanceBetween(bottomEnd, target);
-
-    return distToTop < distToBottom ? topEnd : bottomEnd;
-  }
-
   /// Calculate Euclidean distance between two positions
   double _distanceBetween(Position a, Position b) {
     final dx = a.x - b.x;
@@ -162,25 +122,83 @@ class AStarPathfinder {
     return (dx * dx + dy * dy); // No need for sqrt for comparison
   }
 
+  /// Adjust a position to be walkable if it's in an aisle
+  /// For items on shelves, this offsets to the walkway beside the aisle
+  /// If item is on right side, offset to left walkway; if on left, offset to right walkway
+  Position _adjustToWalkablePosition(Position pos, StoreLayout layout) {
+    final aisle = _getAisleContaining(pos, layout);
+    if (aisle != null) {
+      final aisleCenterX = aisle.bounds.x + aisle.bounds.width / 2;
+      final originalX = pos.x;
+      
+      // Determine which side of the aisle the item is on
+      // If item X > aisle center, it's on the right side, so offset to left walkway
+      // If item X < aisle center, it's on the left side, so offset to right walkway
+      final isOnRightSide = originalX > aisleCenterX;
+      
+      // Walkway width is 3m, aisle width is 2m
+      // Offset to the walkway beside the aisle
+      final walkwayOffset = 1.5; // Half of walkway width (3m / 2 = 1.5m)
+      
+      double adjustedX;
+      if (isOnRightSide) {
+        // Item is on right side, offset to left walkway (left of aisle)
+        adjustedX = aisle.bounds.x - walkwayOffset;
+      } else {
+        // Item is on left side, offset to right walkway (right of aisle)
+        adjustedX = aisle.bounds.x + aisle.bounds.width + walkwayOffset;
+      }
+      
+      // Keep the Y coordinate (shelf level)
+      final adjustedY = pos.y.clamp(
+        aisle.bounds.y,
+        aisle.bounds.y + aisle.bounds.height,
+      );
+      
+      return Position(x: adjustedX, y: adjustedY);
+    }
+    return pos;
+  }
+
   /// Check if a position is walkable
-  /// Aisles have walkable center paths, but we avoid the shelf areas on sides
+  /// Walkways between aisles are always walkable
+  /// Aisle centers are only walkable when navigating within that aisle
   bool _isWalkable(Position pos, StoreLayout layout) {
     // Check if position is within store bounds
     if (pos.x < 0 || pos.x > 50.0 || pos.y < 0 || pos.y > 30.0) {
       return false;
     }
 
-    // For now, consider all positions within store bounds as walkable
-    // In a more sophisticated implementation, we could define shelf zones
-    // within aisles that should be avoided, but allow the center walkway
-
-    // The key insight: products are ON shelves (edges of aisles)
-    // The walkable path is the CENTER of aisles and the spaces between them
-    // For simplicity, we'll allow all positions and let the grid resolution
-    // naturally create paths that go through aisle centers and between aisles
-
+    // Check if position is within an aisle bounds
+    final aisle = _getAisleContaining(pos, layout);
+    
+    if (aisle != null) {
+      // Position is within an aisle rectangle
+      // Only allow if it's at the exact center (walkway within aisle)
+      // Aisles are 2m wide, center is at x + 1m
+      final aisleCenterX = aisle.bounds.x + aisle.bounds.width / 2;
+      final distanceFromCenter = (pos.x - aisleCenterX).abs();
+      
+      // Only allow positions very close to aisle center (within 0.1m tolerance)
+      // This ensures we only use aisle centers, not shelf areas
+      if (distanceFromCenter > 0.1) {
+        return false;
+      }
+      
+      // Check Y bounds to ensure we're within the aisle
+      if (pos.y < aisle.bounds.y || pos.y > aisle.bounds.y + aisle.bounds.height) {
+        return false;
+      }
+      
+      // Aisle center is walkable (for navigating to items in this aisle)
+      return true;
+    }
+    
+    // Position is not in any aisle - it's in a walkway between aisles
+    // Walkways are always walkable
     return true;
   }
+  
 
   /// Get neighboring grid nodes (8 directions)
   List<_GridNode> _getNeighbors(_GridNode node) {
@@ -276,3 +294,4 @@ class _GridNode {
   @override
   int get hashCode => x.hashCode ^ y.hashCode;
 }
+

@@ -26,13 +26,13 @@ class StoreLayoutConfig {
       height: storeHeight,
       aisles: _getAisles(),
       sections: _getSections(),
-      entryPoint: const Point(
+      entryPoint: Point(
         x: 25.0, // Center of store (between A3 and B1)
-        y: 1.5, // Near top, in the walkway
+        y: storeHeight - 0.5, // At the very bottom edge
       ),
       checkoutArea: StoreRect(
         x: 24.0, // Center area
-        y: 27.0, // Near bottom
+        y: 0.0, // At the absolute top edge, above all aisles
         width: 2.0,
         height: 2.0,
       ),
